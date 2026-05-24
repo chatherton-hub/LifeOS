@@ -12,33 +12,33 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; background: #FAFAF8; }
-  body { font-family: 'Playfair Display', Georgia, serif; color: #1E1B18; overscroll-behavior: none; }
-  .dm { font-family: 'DM Sans', system-ui, sans-serif; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; }
+  body { height: 100%; font-family: 'Playfair Display', Georgia, serif; color: #1E1B18; background: #F5F2EE; overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
   ::-webkit-scrollbar { display: none; }
-  textarea { -webkit-appearance: none; appearance: none; }
+  * { scrollbar-width: none; }
+  textarea { -webkit-appearance: none; font-family: 'Playfair Display', Georgia, serif; }
   textarea:focus { outline: none; }
-  button { -webkit-appearance: none; appearance: none; border: none; background: none; cursor: pointer; }
-  @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-  .fade-up { animation: fadeUp 0.25s ease forwards; }
-  @keyframes checkPop { 0%{transform:scale(1)} 50%{transform:scale(1.18)} 100%{transform:scale(1)} }
-  .check-pop { animation: checkPop 0.2s ease; }
+  button { -webkit-appearance: none; font-family: 'DM Sans', system-ui, sans-serif; border: none; background: none; cursor: pointer; }
+  a { text-decoration: none; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  .fade-up { animation: fadeUp 0.22s ease forwards; }
+  @keyframes pop { 0%{transform:scale(1)} 45%{transform:scale(1.2)} 100%{transform:scale(1)} }
+  .dm { font-family: 'DM Sans', system-ui, sans-serif; }
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root" style="height:100%"></div>
 <script type="text/babel">
-const { useState, useEffect, useCallback } = React;
+const { useState, useEffect, useRef } = React;
 
-// ── Data ──────────────────────────────────────────────────────────────────
-
+// ─── Palette ──────────────────────────────────────────────────────────────
 const PILLARS = [
-  { id:"faith",      label:"Faith",      icon:"✝", color:"#B8954A", light:"#FDF8EE", soft:"#F5EDDA" },
-  { id:"family",     label:"Family",     icon:"♥", color:"#5A8C6E", light:"#EEF6F1", soft:"#D8EDE1" },
-  { id:"fellowship", label:"Fellowship", icon:"⬡", color:"#5B7A94", light:"#EDF3F8", soft:"#D0E2EE" },
-  { id:"fitness",    label:"Fitness",    icon:"◎", color:"#9B6355", light:"#FBF0EE", soft:"#EDD8D3" },
-  { id:"home",       label:"Home",       icon:"⌂", color:"#7A6A9A", light:"#F3F0F9", soft:"#E0D8F0" },
+  { id:"faith",      label:"Faith",      icon:"✝", color:"#B8954A", light:"#FDF8EE", soft:"#F0E6CA" },
+  { id:"family",     label:"Family",     icon:"♥", color:"#5A8C6E", light:"#EEF6F1", soft:"#C8E4D4" },
+  { id:"fellowship", label:"Fellowship", icon:"⬡", color:"#5B7A94", light:"#EDF3F8", soft:"#C4DAE8" },
+  { id:"fitness",    label:"Fitness",    icon:"◎", color:"#9B6355", light:"#FBF0EE", soft:"#EAC8C2" },
+  { id:"home",       label:"Home",       icon:"⌂", color:"#7A6A9A", light:"#F3F0F9", soft:"#D8CEF0" },
 ];
 
 const SCHEDULE = [
@@ -77,29 +77,29 @@ const FITNESS = {
 };
 
 const DAILY = [
-  { id:"devotion",          pillar:"faith",     label:"Morning devotion",                  detail:"Bible verse, prayer, or devotional — 6:05am",       weekdayOnly:false },
-  { id:"water",             pillar:"fitness",   label:"Hit 120oz water goal",              detail:"3 full 40oz bottles across the day",                weekdayOnly:false },
-  { id:"present_wife",      pillar:"family",    label:"Intentional time with wife",        detail:"Present, not just in the same room",                weekdayOnly:false },
-  { id:"present_daughters", pillar:"family",    label:"Intentional time with daughters",   detail:"Each girl — even small moments count",              weekdayOnly:false },
-  { id:"workoff",           pillar:"family",    label:"Hard stop from work by 5:30pm",     detail:"Close it down. Be home, not just home.",            weekdayOnly:true  },
-  { id:"protein_fiber",     pillar:"fitness",   label:"Protein + fiber at every meal",     detail:"No meal without both",                             weekdayOnly:false },
-  { id:"house_reset",       pillar:"home",      label:"House reset before bed",            detail:"10 min tidy — dishes, counters, toys picked up",   weekdayOnly:false },
-  { id:"gratitude",         pillar:"faith",     label:"Name one thing you're grateful for",detail:"Say it or write it — before lights out",           weekdayOnly:false },
+  { id:"devotion",          pillar:"faith",     label:"Morning devotion",                   detail:"Bible verse, prayer, or devotional — 6:05am",     weekdayOnly:false },
+  { id:"water",             pillar:"fitness",   label:"Hit 120oz water goal",               detail:"3 full 40oz bottles across the day",              weekdayOnly:false },
+  { id:"present_wife",      pillar:"family",    label:"Intentional time with wife",         detail:"Present, not just in the same room",              weekdayOnly:false },
+  { id:"present_daughters", pillar:"family",    label:"Intentional time with daughters",    detail:"Each girl — even small moments count",            weekdayOnly:false },
+  { id:"workoff",           pillar:"family",    label:"Hard stop from work by 5:30pm",      detail:"Close it down. Be home, not just home.",          weekdayOnly:true  },
+  { id:"protein_fiber",     pillar:"fitness",   label:"Protein + fiber at every meal",      detail:"No meal without both",                           weekdayOnly:false },
+  { id:"house_reset",       pillar:"home",      label:"House reset before bed",             detail:"10 min tidy — dishes, counters, toys picked up", weekdayOnly:false },
+  { id:"gratitude",         pillar:"faith",     label:"Name one thing you're grateful for", detail:"Say it or write it — before lights out",         weekdayOnly:false },
 ];
 
 const WEEKLY = [
-  { id:"church",           pillar:"faith",      label:"Attend church",                          freq:"Weekly",   day:"Sun" },
-  { id:"peloton_4",        pillar:"fitness",    label:"Complete 4 workouts",                    freq:"4x/week",  day:null },
-  { id:"meal_plan",        pillar:"home",       label:"Plan meals with wife for the week",      freq:"Weekly",   day:"Sat" },
-  { id:"grocery",          pillar:"home",       label:"Grocery run (lead this)",                freq:"Weekly",   day:"Sat/Sun" },
-  { id:"trash",            pillar:"home",       label:"Take bins out — trash & recycling",      freq:"Weekly",   day:"Tue" },
-  { id:"finances",         pillar:"home",       label:"Review finances",                        freq:"Weekly",   day:"Wed" },
-  { id:"yardwork",         pillar:"home",       label:"Yard work + house clean-up",             freq:"Weekly",   day:"Sat" },
-  { id:"date",             pillar:"family",     label:"One-on-one time with wife",              freq:"Weekly",   day:null },
-  { id:"daughter1",        pillar:"family",     label:"Special moment with daughter #1",        freq:"Weekly",   day:null },
-  { id:"daughter2",        pillar:"family",     label:"Special moment with daughter #2",        freq:"Weekly",   day:null },
-  { id:"fellowship_event", pillar:"fellowship", label:"Host or organize a gathering",           freq:"2x/month", day:null },
-  { id:"serve",            pillar:"fellowship", label:"Do something for someone else",          freq:"Weekly",   day:null },
+  { id:"church",           pillar:"faith",      label:"Attend church",                         freq:"Weekly",   day:"Sun" },
+  { id:"peloton_4",        pillar:"fitness",    label:"Complete 4 workouts",                   freq:"4x/week",  day:null  },
+  { id:"meal_plan",        pillar:"home",       label:"Plan meals with wife for the week",     freq:"Weekly",   day:"Sat" },
+  { id:"grocery",          pillar:"home",       label:"Grocery run (lead this)",               freq:"Weekly",   day:"Sat/Sun" },
+  { id:"trash",            pillar:"home",       label:"Take bins out — trash & recycling",     freq:"Weekly",   day:"Tue" },
+  { id:"finances",         pillar:"home",       label:"Review finances",                       freq:"Weekly",   day:"Wed" },
+  { id:"yardwork",         pillar:"home",       label:"Yard work + house clean-up",            freq:"Weekly",   day:"Sat" },
+  { id:"date",             pillar:"family",     label:"One-on-one time with wife",             freq:"Weekly",   day:null  },
+  { id:"daughter1",        pillar:"family",     label:"Special moment with daughter #1",       freq:"Weekly",   day:null  },
+  { id:"daughter2",        pillar:"family",     label:"Special moment with daughter #2",       freq:"Weekly",   day:null  },
+  { id:"fellowship_event", pillar:"fellowship", label:"Host or organize a gathering",          freq:"2x/month", day:null  },
+  { id:"serve",            pillar:"fellowship", label:"Do something for someone else",         freq:"Weekly",   day:null  },
 ];
 
 const SUNDAY_QS = [
@@ -123,95 +123,235 @@ const REFLECTIONS = [
   "Did I reset the house before bed?",
 ];
 
-// ── Utils ─────────────────────────────────────────────────────────────────
+// ─── Utils ────────────────────────────────────────────────────────────────
+const getPillar   = id => PILLARS.find(p => p.id === id) || { color:"#AAA", light:"#F9F9F9", soft:"#EEE", label:"" };
 
-const getPillar = id => PILLARS.find(p => p.id === id) || { color:"#AAA", light:"#F9F9F9", soft:"#EEE", label:"" };
-const todayKey  = () => new Date().toISOString().split("T")[0];
-const weekKey   = () => { const d=new Date(),day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1); return new Date(new Date().setDate(diff)).toISOString().split("T")[0]; };
-const sundayKey = () => { const d=new Date(),day=d.getDay(),diff=d.getDate()+(day===0?0:7-day); return new Date(new Date().setDate(diff)).toISOString().split("T")[0]; };
-const ls  = (k,fb) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):fb; } catch { return fb; } };
-const ss  = (k,v)  => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} };
-const isWeekend = () => { const d=new Date().getDay(); return d===0||d===6; };
+// Always returns YYYY-MM-DD in LOCAL time (fixes the day-rollover bug)
+const localDateKey = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+};
+const weekKey = () => {
+  const d = new Date(), dow = d.getDay();
+  const diff = d.getDate() - dow + (dow===0 ? -6 : 1);
+  const mon = new Date(d); mon.setDate(diff);
+  const y = mon.getFullYear(), m = String(mon.getMonth()+1).padStart(2,"0"), dy = String(mon.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dy}`;
+};
+const sundayKey = () => {
+  const d = new Date(), dow = d.getDay();
+  const diff = d.getDate() + (dow===0 ? 0 : 7-dow);
+  const sun = new Date(d); sun.setDate(diff);
+  const y = sun.getFullYear(), m = String(sun.getMonth()+1).padStart(2,"0"), dy = String(sun.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dy}`;
+};
+
+const ls = (k, fb) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } };
+const ss = (k, v)  => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+const isWeekend = () => { const d = new Date().getDay(); return d===0||d===6; };
 
 const MEAL_PROMPT = `Generate me a weekly meal plan. Requirements:
 - High protein (30-40g per meal)
-- High fiber at every meal
+- High fiber at every meal  
 - Blackstone griddle friendly where possible
 - Simple family-friendly meals, max 5 ingredients
 - Variety across breakfast, lunch, dinner, and snacks
 - Beginner cook level
 
-For each meal include: name, protein amount, fiber amount, one tip, and whether it works on the Blackstone.
-Also give me a grocery list and one cooking tip for the week.`;
+For each meal include: name, protein amount, fiber amount, one tip, and whether it works on the Blackstone. Also give me a grocery list and one cooking tip for the week.`;
 
-// ── Components ────────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────
+
+function Pill({ children, color, bg }) {
+  return (
+    <span className="dm" style={{ fontSize:10, padding:"3px 8px", borderRadius:20, background:bg, color:color, fontWeight:"600", letterSpacing:"0.02em", whiteSpace:"nowrap" }}>
+      {children}
+    </span>
+  );
+}
+
+function SectionLabel({ children, style }) {
+  return (
+    <div className="dm" style={{ fontSize:10, letterSpacing:"0.18em", textTransform:"uppercase", color:"#B0A89E", marginBottom:10, paddingLeft:2, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+function Card({ children, style }) {
+  return (
+    <div style={{ background:"#fff", borderRadius:18, overflow:"hidden", marginBottom:14, boxShadow:"0 1px 4px rgba(0,0,0,0.07)", ...style }}>
+      {children}
+    </div>
+  );
+}
 
 function CheckRow({ item, done, onToggle, showFreq, showDay }) {
   const p = getPillar(item.pillar);
-  const [popping, setPopping] = useState(false);
-  const handle = () => { if(!done){ setPopping(true); setTimeout(()=>setPopping(false),200); } onToggle(); };
+  const [anim, setAnim] = useState(false);
+  const handle = () => {
+    if (!done) { setAnim(true); setTimeout(() => setAnim(false), 220); }
+    onToggle();
+  };
   return (
-    <div onClick={handle} style={{ display:"flex", alignItems:"flex-start", gap:14, padding:"16px 0", borderBottom:"1px solid #F0EDE8", cursor:"pointer" }}>
-      <div style={{ marginTop:2, flexShrink:0 }}>
-        <div className={popping?"check-pop":""} style={{ width:22, height:22, borderRadius:6, border:`2px solid ${done?p.color:"#D4CFC9"}`, background:done?p.color:"transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}>
-          {done && <svg width="12" height="9" viewBox="0 0 12 9" fill="none"><path d="M1 4L4.5 7.5L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+    <div onClick={handle} style={{ display:"flex", alignItems:"flex-start", gap:14, padding:"15px 20px", borderBottom:"1px solid #F2EFE9", cursor:"pointer", background: done ? p.light : "#fff", transition:"background 0.2s" }}>
+      <div style={{ marginTop:1, flexShrink:0 }}>
+        <div style={{ width:22, height:22, borderRadius:7, border:`2px solid ${done ? p.color : "#D8D3CC"}`, background: done ? p.color : "transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.18s", transform: anim ? "scale(1.2)" : "scale(1)" }}>
+          {done && (
+            <svg width="11" height="8" viewBox="0 0 11 8" fill="none">
+              <path d="M1 3.5L4 6.5L10 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
         </div>
       </div>
       <div style={{ flex:1, minWidth:0 }}>
-        <div className="dm" style={{ fontSize:15, fontWeight:"500", color:done?"#AAA":"#1E1B18", textDecoration:done?"line-through":"none", textDecorationColor:p.color, lineHeight:1.3 }}>{item.label}</div>
-        {item.detail && <div className="dm" style={{ fontSize:12, color:"#AAA", marginTop:3, lineHeight:1.4 }}>{item.detail}</div>}
+        <div className="dm" style={{ fontSize:15, fontWeight:"500", color: done ? p.color : "#1E1B18", textDecoration: done ? "line-through" : "none", textDecorationColor: p.color, lineHeight:1.35 }}>
+          {item.label}
+        </div>
+        {item.detail && (
+          <div className="dm" style={{ fontSize:12, color:"#B0A89E", marginTop:3, lineHeight:1.45 }}>{item.detail}</div>
+        )}
       </div>
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4, flexShrink:0, marginTop:2 }}>
-        {showFreq && item.freq && <span className="dm" style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:p.soft, color:p.color, fontWeight:"600", letterSpacing:"0.02em" }}>{item.freq}</span>}
-        {showDay  && item.day  && <span className="dm" style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:"#F0EDE8", color:"#888" }}>{item.day}</span>}
-        <span className="dm" style={{ fontSize:9, letterSpacing:"0.08em", textTransform:"uppercase", color:p.color, opacity:0.7 }}>{p.label}</span>
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4, flexShrink:0, paddingTop:2 }}>
+        {showFreq && item.freq && <Pill color={p.color} bg={p.soft}>{item.freq}</Pill>}
+        {showDay  && item.day  && <Pill color="#888" bg="#EEEBE5">{item.day}</Pill>}
+        <span className="dm" style={{ fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:p.color, opacity:0.75 }}>{p.label}</span>
       </div>
     </div>
   );
 }
 
-function SectionLabel({ children }) {
-  return <div className="dm" style={{ fontSize:10, letterSpacing:"0.16em", textTransform:"uppercase", color:"#B0A89E", marginBottom:4, marginTop:2 }}>{children}</div>;
+// ─── Tab content components ───────────────────────────────────────────────
+
+function TodayTab({ checked, setChecked, weekly, setWeekly, isWknd, todayShort }) {
+  const visibleDaily = DAILY.filter(i => !i.weekdayOnly || !isWknd);
+  const todayWeekly  = WEEKLY.filter(i => i.day && i.day.includes(todayShort));
+  return (
+    <div className="fade-up">
+      <SectionLabel>Daily Non-Negotiables</SectionLabel>
+      <Card>
+        {visibleDaily.map((item, i, arr) => (
+          <div key={item.id} style={{ borderBottom: i < arr.length-1 ? "1px solid #F2EFE9" : "none" }}>
+            <CheckRow item={item} done={!!checked[item.id]} onToggle={() => setChecked(p => ({...p, [item.id]: !p[item.id]}))} />
+          </div>
+        ))}
+      </Card>
+      {todayWeekly.length > 0 && (
+        <>
+          <SectionLabel>Scheduled for Today</SectionLabel>
+          <Card>
+            {todayWeekly.map((item, i, arr) => (
+              <div key={item.id} style={{ borderBottom: i < arr.length-1 ? "1px solid #F2EFE9" : "none" }}>
+                <CheckRow item={item} done={!!weekly[item.id]} onToggle={() => setWeekly(p => ({...p, [item.id]: !p[item.id]}))} showDay />
+              </div>
+            ))}
+          </Card>
+        </>
+      )}
+    </div>
+  );
 }
 
-function Card({ children, style }) {
-  return <div style={{ background:"#fff", borderRadius:16, padding:"4px 20px", marginBottom:12, boxShadow:"0 1px 3px rgba(0,0,0,0.06)", ...style }}>{children}</div>;
-}
-
-// ── Meals Tab ─────────────────────────────────────────────────────────────
-
-function MealsTab() {
-  const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(MEAL_PROMPT)}`;
+function ScheduleTab({ isWknd }) {
+  const blocks = SCHEDULE.filter(b => !b.weekdayOnly || !isWknd);
   return (
     <div className="fade-up">
       <div style={{ marginBottom:20 }}>
-        <div style={{ fontSize:22, color:"#1E1B18", marginBottom:6, lineHeight:1.3 }}>Meal Planning</div>
-        <div className="dm" style={{ fontSize:13, color:"#AAA", lineHeight:1.6 }}>Tap below to open Claude and get a fresh AI-generated meal plan — high protein, high fiber, Blackstone-friendly.</div>
+        <div style={{ fontSize:24, lineHeight:1.2, marginBottom:6 }}>Daily Rhythm</div>
+        <div className="dm" style={{ fontSize:13, color:"#B0A89E", lineHeight:1.6 }}>Built around 6am–9:30pm. Give yourself grace on hard nights.</div>
       </div>
+      <Card style={{ padding:"8px 0" }}>
+        {blocks.map((block, i) => {
+          const color = block.pillar ? getPillar(block.pillar).color : "#D8D3CC";
+          return (
+            <div key={i} style={{ display:"flex", padding:"12px 20px", borderBottom: i < blocks.length-1 ? "1px solid #F2EFE9" : "none" }}>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", width:16, flexShrink:0, marginRight:16, marginTop:6 }}>
+                <div style={{ width:8, height:8, borderRadius:"50%", background:color, flexShrink:0 }} />
+                {i < blocks.length-1 && <div style={{ width:1.5, flex:1, background:"#EAE6E0", marginTop:4, minHeight:12 }} />}
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom: block.note ? 3 : 0 }}>
+                  <span className="dm" style={{ fontSize:11, color:"#C0BAB2", minWidth:54 }}>{block.time}</span>
+                  <span className="dm" style={{ fontSize:14, fontWeight:"500", color:"#1E1B18" }}>{block.label}</span>
+                  {block.pillar && (
+                    <span className="dm" style={{ fontSize:9, color, letterSpacing:"0.1em", textTransform:"uppercase", fontWeight:"600" }}>
+                      {getPillar(block.pillar).label}
+                    </span>
+                  )}
+                </div>
+                {block.note && (
+                  <div className="dm" style={{ fontSize:12, color:"#B0A89E", fontStyle:"italic", paddingLeft:62 }}>{block.note}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </Card>
+    </div>
+  );
+}
 
-      <a href={claudeUrl} target="_blank" rel="noopener noreferrer" style={{ display:"block", textDecoration:"none" }}>
-        <div style={{ background:"#1E1B18", borderRadius:14, padding:"18px 20px", marginBottom:16, display:"flex", alignItems:"center", gap:14 }}>
-          <div style={{ width:40, height:40, borderRadius:10, background:"rgba(255,255,255,0.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>✦</div>
-          <div>
-            <div className="dm" style={{ fontSize:15, fontWeight:"600", color:"#fff", marginBottom:2 }}>Generate This Week's Meal Plan</div>
-            <div className="dm" style={{ fontSize:12, color:"rgba(255,255,255,0.5)" }}>Opens Claude with your prompt ready to go</div>
+function WeekTab({ weekly, setWeekly, weeklyDone }) {
+  return (
+    <div className="fade-up">
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:24, lineHeight:1.2, marginBottom:6 }}>This Week</div>
+        <div className="dm" style={{ fontSize:13, color:"#B0A89E" }}>{weeklyDone} of {WEEKLY.length} intentions complete</div>
+      </div>
+      <Card>
+        {WEEKLY.map((item, i, arr) => (
+          <div key={item.id} style={{ borderBottom: i < arr.length-1 ? "1px solid #F2EFE9" : "none" }}>
+            <CheckRow item={item} done={!!weekly[item.id]} onToggle={() => setWeekly(p => ({...p, [item.id]: !p[item.id]}))} showFreq showDay />
           </div>
-          <div style={{ marginLeft:"auto", color:"rgba(255,255,255,0.4)", fontSize:18 }}>→</div>
+        ))}
+      </Card>
+      <div style={{ background:"#EDF3F8", borderRadius:16, padding:"18px 20px" }}>
+        <div className="dm" style={{ fontSize:10, fontWeight:"700", color:"#5B7A94", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:8 }}>⬡ Fellowship Target</div>
+        <div className="dm" style={{ fontSize:13, color:"#3A5A70", lineHeight:1.7 }}>
+          Host or organize <strong>2 gatherings/month</strong> — neighbors, friends, or colleagues. Put it on the calendar before it disappears.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MealsTab() {
+  const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(MEAL_PROMPT)}`;
+  const principles = [
+    { icon:"🥩", label:"Protein first",         detail:"30–40g per meal. Keeps you full, builds muscle, burns fat." },
+    { icon:"🥦", label:"Fiber with every meal",  detail:"Vegetables, beans, or fruit at every sitting." },
+    { icon:"🔥", label:"Blackstone-friendly",    detail:"Simple flat-top cooking. If it can be griddled, it counts." },
+    { icon:"🍽️", label:"Cook for the family",    detail:"Showing up as provider. Simple wins are still wins." },
+  ];
+  return (
+    <div className="fade-up">
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:24, lineHeight:1.2, marginBottom:6 }}>Meal Planning</div>
+        <div className="dm" style={{ fontSize:13, color:"#B0A89E", lineHeight:1.6 }}>
+          Tap below to open Claude and get a fresh AI-generated meal plan — high protein, high fiber, Blackstone-friendly.
+        </div>
+      </div>
+      <a href={claudeUrl} target="_blank" rel="noopener noreferrer">
+        <div style={{ background:"#1E1B18", borderRadius:18, padding:"20px 22px", marginBottom:16, display:"flex", alignItems:"center", gap:16 }}>
+          <div style={{ width:44, height:44, borderRadius:12, background:"rgba(255,255,255,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>✦</div>
+          <div style={{ flex:1 }}>
+            <div className="dm" style={{ fontSize:15, fontWeight:"600", color:"#fff", marginBottom:3 }}>Generate This Week's Meal Plan</div>
+            <div className="dm" style={{ fontSize:12, color:"rgba(255,255,255,0.45)" }}>Opens Claude with your prompt ready to go</div>
+          </div>
+          <div style={{ color:"rgba(255,255,255,0.35)", fontSize:20 }}>→</div>
         </div>
       </a>
-
       <Card>
-        {[
-          { icon:"🥩", label:"Protein first",        detail:"30–40g per meal. Keeps you full, builds muscle, burns fat." },
-          { icon:"🥦", label:"Fiber with every meal", detail:"Vegetables, beans, or fruit at every sitting." },
-          { icon:"🔥", label:"Blackstone-friendly",   detail:"Simple flat-top cooking. If it can be griddled, it counts." },
-          { icon:"🍽️", label:"Cook for the family",   detail:"Showing up as provider. Simple wins are still wins." },
-        ].map((p,i,arr) => (
-          <div key={i} style={{ padding:"14px 0", borderBottom: i<arr.length-1?"1px solid #F0EDE8":"none", display:"flex", gap:12, alignItems:"flex-start" }}>
-            <span style={{ fontSize:20, flexShrink:0, marginTop:1 }}>{p.icon}</span>
+        {principles.map((p, i, arr) => (
+          <div key={i} style={{ display:"flex", gap:14, alignItems:"flex-start", padding:"16px 20px", borderBottom: i < arr.length-1 ? "1px solid #F2EFE9" : "none" }}>
+            <span style={{ fontSize:22, flexShrink:0, marginTop:1 }}>{p.icon}</span>
             <div>
-              <div className="dm" style={{ fontSize:13, fontWeight:"600", color:"#1E1B18", marginBottom:2 }}>{p.label}</div>
-              <div className="dm" style={{ fontSize:12, color:"#AAA", lineHeight:1.4 }}>{p.detail}</div>
+              <div className="dm" style={{ fontSize:14, fontWeight:"600", color:"#1E1B18", marginBottom:3 }}>{p.label}</div>
+              <div className="dm" style={{ fontSize:12, color:"#B0A89E", lineHeight:1.5 }}>{p.detail}</div>
             </div>
           </div>
         ))}
@@ -220,10 +360,173 @@ function MealsTab() {
   );
 }
 
-// ── Main App ──────────────────────────────────────────────────────────────
+function FitnessTab({ workouts, setWorkouts }) {
+  const [view, setView] = useState("plan");
+  const workoutCount = Object.values(workouts).filter(Boolean).length;
 
+  return (
+    <div className="fade-up">
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:24, lineHeight:1.2, marginBottom:6 }}>Fitness</div>
+        <div className="dm" style={{ fontSize:13, color:"#B0A89E", lineHeight:1.6 }}>{FITNESS.desc}</div>
+      </div>
+      <div style={{ display:"flex", gap:8, marginBottom:18 }}>
+        {[["plan","Weekly Plan"],["log","Log Workouts"]].map(([v,label]) => (
+          <button key={v} onClick={() => setView(v)} style={{ flex:1, padding:"11px", borderRadius:12, border:`1.5px solid ${view===v ? "#9B6355" : "#E4DFD8"}`, background: view===v ? "#9B6355" : "transparent", color: view===v ? "#fff" : "#B0A89E", fontSize:12, fontWeight:"600", textTransform:"uppercase", letterSpacing:"0.06em" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view==="plan" && (
+        <>
+          <Card>
+            {FITNESS.days.map((d, i, arr) => {
+              const tc = d.type==="Cardio" ? "#5B7A94" : d.type==="Strength" ? "#9B6355" : d.type==="Flex" ? "#5A8C6E" : "#B0A89E";
+              const bg = d.type==="Cardio" ? "#EDF3F8" : d.type==="Strength" ? "#FBF0EE" : d.type==="Flex" ? "#EEF6F1" : "#F5F2EE";
+              return (
+                <div key={i} style={{ padding:"16px 20px", borderBottom: i < arr.length-1 ? "1px solid #F2EFE9" : "none" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:5 }}>
+                    <span style={{ fontSize:18 }}>{d.icon}</span>
+                    <span className="dm" style={{ fontWeight:"700", fontSize:13, color:"#1E1B18", minWidth:34 }}>{d.day}</span>
+                    <span className="dm" style={{ fontSize:10, padding:"3px 9px", borderRadius:20, background:bg, color:tc, fontWeight:"700", letterSpacing:"0.04em" }}>{d.type}</span>
+                    <span className="dm" style={{ fontSize:13, color:"#5C5248" }}>{d.label}</span>
+                  </div>
+                  <div className="dm" style={{ fontSize:12, color:"#B0A89E", marginLeft:38, lineHeight:1.5 }}>{d.detail}</div>
+                </div>
+              );
+            })}
+          </Card>
+          <div style={{ background:"#FBF0EE", borderRadius:16, padding:"18px 20px" }}>
+            <div className="dm" style={{ fontSize:10, fontWeight:"700", color:"#9B6355", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:10 }}>Coach's Notes</div>
+            {FITNESS.tips.map((t, i) => (
+              <div key={i} className="dm" style={{ fontSize:12, color:"#7A4A3A", marginBottom: i < FITNESS.tips.length-1 ? 9 : 0, paddingLeft:12, borderLeft:"2px solid #9B635540", lineHeight:1.55 }}>{t}</div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {view==="log" && (
+        <>
+          <Card style={{ padding:"24px 20px", textAlign:"center" }}>
+            <div style={{ fontSize:52, color:"#9B6355", lineHeight:1, fontFamily:"'Playfair Display', Georgia, serif" }}>{workoutCount}</div>
+            <div className="dm" style={{ fontSize:13, color:"#B0A89E", marginTop:4, marginBottom:18 }}>of 4 workouts this week</div>
+            <div style={{ display:"flex", gap:6 }}>
+              {[0,1,2,3].map(i => (
+                <div key={i} style={{ flex:1, height:5, borderRadius:3, background: i < workoutCount ? "#9B6355" : "#EAE6E0", transition:"background 0.3s" }} />
+              ))}
+            </div>
+          </Card>
+          <Card>
+            {FITNESS.days.filter(d => d.type!=="Rest").map((d, i, arr) => {
+              const done = workouts[d.day];
+              const tc = d.type==="Cardio" ? "#5B7A94" : d.type==="Strength" ? "#9B6355" : "#5A8C6E";
+              const bg = d.type==="Cardio" ? "#EDF3F8" : d.type==="Strength" ? "#FBF0EE" : "#EEF6F1";
+              return (
+                <div key={i} onClick={() => setWorkouts(p => ({...p, [d.day]: !p[d.day]}))}
+                  style={{ display:"flex", alignItems:"center", gap:14, padding:"16px 20px", borderBottom: i < arr.length-1 ? "1px solid #F2EFE9" : "none", cursor:"pointer", background: done ? "#FAFAF8" : "#fff", transition:"background 0.2s" }}>
+                  <div style={{ width:22, height:22, borderRadius:7, flexShrink:0, border:`2px solid ${done ? "#9B6355" : "#D8D3CC"}`, background: done ? "#9B6355" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.18s" }}>
+                    {done && <svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 3.5L4 6.5L10 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                  <span style={{ fontSize:18 }}>{d.icon}</span>
+                  <div style={{ flex:1 }}>
+                    <div className="dm" style={{ fontSize:14, fontWeight:"500", color: done ? "#B0A89E" : "#1E1B18", textDecoration: done ? "line-through" : "none" }}>
+                      {d.day} — {d.label}
+                    </div>
+                  </div>
+                  <span className="dm" style={{ fontSize:10, padding:"3px 9px", borderRadius:20, background:bg, color:tc, fontWeight:"700" }}>{d.type}</span>
+                </div>
+              );
+            })}
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+function WaterTab({ bottles, setBottles }) {
+  const col = "#5B7A94";
+  const labels = ["Morning","Afternoon","Evening"];
+  const times  = ["by noon","by 4pm","by 7pm"];
+  return (
+    <div className="fade-up">
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:24, lineHeight:1.2, marginBottom:6 }}>Water</div>
+        <div className="dm" style={{ fontSize:13, color:"#B0A89E" }}>3 × 40oz bottles · 120oz total</div>
+      </div>
+      <Card style={{ padding:"28px 24px" }}>
+        <div style={{ textAlign:"center", marginBottom:28 }}>
+          <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:60, color:col, lineHeight:1 }}>
+            {bottles*40}<span style={{ fontSize:22, color:"#C0BAB2", fontFamily:"'DM Sans',system-ui,sans-serif" }}> oz</span>
+          </div>
+          <div className="dm" style={{ fontSize:13, color:"#B0A89E", marginTop:6 }}>
+            {bottles >= 3 ? "Goal reached — great work today 💧" : `${(3-bottles)*40}oz to go`}
+          </div>
+        </div>
+
+        <div style={{ display:"flex", justifyContent:"center", gap:24, marginBottom:28 }}>
+          {[0,1,2].map(i => {
+            const filled = i < bottles;
+            return (
+              <div key={i} onClick={() => setBottles(b => b===i+1 ? i : i+1)} style={{ cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
+                <svg width="52" height="82" viewBox="0 0 60 100">
+                  <rect x="10" y="20" width="40" height="72" rx="9" fill={filled?col:"#EAE6E0"} stroke={filled?col:"#D8D3CC"} strokeWidth="1.5" style={{transition:"fill 0.25s"}}/>
+                  <rect x="20" y="10" width="20" height="14" rx="4" fill={filled?col:"#EAE6E0"} stroke={filled?col:"#D8D3CC"} strokeWidth="1.5" style={{transition:"fill 0.25s"}}/>
+                  <rect x="22" y="4" width="16" height="10" rx="3" fill={filled?"#B8954A":"#D8D3CC"} style={{transition:"fill 0.25s"}}/>
+                  {filled && <rect x="12" y="30" width="36" height="60" rx="7" fill="rgba(255,255,255,0.12)"/>}
+                  {[50,62,74].map(y => <line key={y} x1="18" y1={y} x2="42" y2={y} stroke={filled?"rgba(255,255,255,0.25)":"#E4DFD8"} strokeWidth="1.5"/>)}
+                </svg>
+                <div className="dm" style={{ fontSize:12, fontWeight: filled?"600":"400", color: filled ? col : "#C0BAB2" }}>{labels[i]}</div>
+                <div className="dm" style={{ fontSize:10, color:"#C0BAB2" }}>{times[i]}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ display:"flex", gap:10 }}>
+          <button onClick={() => setBottles(b => Math.min(3,b+1))} style={{ flex:1, padding:"14px", borderRadius:13, background:col, color:"#fff", fontSize:15, fontWeight:"600" }}>
+            + Bottle
+          </button>
+          <button onClick={() => setBottles(b => Math.max(0,b-1))} style={{ width:58, padding:"14px", borderRadius:13, border:"1.5px solid #E4DFD8", background:"transparent", color:"#B0A89E", fontSize:18, fontWeight:"300" }}>
+            −
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function SundayTab({ sunReflect, setSunReflect }) {
+  return (
+    <div className="fade-up">
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:24, lineHeight:1.2, marginBottom:6 }}>Sunday Review</div>
+        <div className="dm" style={{ fontSize:13, color:"#B0A89E", lineHeight:1.6 }}>Set aside 10–15 min. Be honest. This is between you and God.</div>
+      </div>
+      {SUNDAY_QS.map((q, i) => (
+        <div key={i} style={{ marginBottom:16 }}>
+          <div style={{ fontSize:15, color:"#1E1B18", fontStyle:"italic", lineHeight:1.5, marginBottom:8 }}>{q}</div>
+          <textarea
+            value={sunReflect[i]||""}
+            onChange={e => setSunReflect(p => ({...p, [i]: e.target.value}))}
+            placeholder="Write freely..."
+            style={{ width:"100%", minHeight:74, borderRadius:13, border:"1.5px solid #E4DFD8", background:"#fff", fontSize:14, color:"#1E1B18", padding:"13px 16px", resize:"vertical", lineHeight:1.65, boxShadow:"0 1px 3px rgba(0,0,0,0.05)" }}
+          />
+        </div>
+      ))}
+      <div style={{ background:"#FDF8EE", borderRadius:16, padding:"18px 20px", textAlign:"center", marginTop:4 }}>
+        <div style={{ fontSize:14, color:"#B8954A", fontStyle:"italic", lineHeight:1.6 }}>"Let each week begin again with grace."</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────
 function App() {
-  const TK = todayKey(), WK = weekKey(), SK = sundayKey();
+  const TK = localDateKey();
+  const WK = weekKey();
+  const SK = sundayKey();
 
   const [checked,    setChecked]    = useState(() => ls(`lifeos_daily_${TK}`, {}));
   const [weekly,     setWeekly]     = useState(() => ls(`lifeos_week_${WK}`, {}));
@@ -231,35 +534,36 @@ function App() {
   const [workouts,   setWorkouts]   = useState(() => ls(`lifeos_workout_${WK}`, {}));
   const [sunReflect, setSunReflect] = useState(() => ls(`lifeos_sunday_${SK}`, {}));
   const [tab,        setTab]        = useState("today");
-  const [fitView,    setFitView]    = useState("plan");
   const [refIdx,     setRefIdx]     = useState(0);
 
-  useEffect(() => { ss(`lifeos_daily_${TK}`, checked); },    [checked]);
-  useEffect(() => { ss(`lifeos_week_${WK}`, weekly); },      [weekly]);
-  useEffect(() => { ss(`lifeos_water_${TK}`, bottles); },    [bottles]);
-  useEffect(() => { ss(`lifeos_workout_${WK}`, workouts); }, [workouts]);
-  useEffect(() => { ss(`lifeos_sunday_${SK}`, sunReflect); },[sunReflect]);
-  useEffect(() => { const t=setInterval(()=>setRefIdx(x=>(x+1)%REFLECTIONS.length),6000); return ()=>clearInterval(t); }, []);
+  useEffect(() => { ss(`lifeos_daily_${TK}`,   checked); },    [checked]);
+  useEffect(() => { ss(`lifeos_week_${WK}`,    weekly); },     [weekly]);
+  useEffect(() => { ss(`lifeos_water_${TK}`,   bottles); },    [bottles]);
+  useEffect(() => { ss(`lifeos_workout_${WK}`, workouts); },   [workouts]);
+  useEffect(() => { ss(`lifeos_sunday_${SK}`,  sunReflect); }, [sunReflect]);
+  useEffect(() => {
+    const t = setInterval(() => setRefIdx(x => (x+1) % REFLECTIONS.length), 6000);
+    return () => clearInterval(t);
+  }, []);
 
   const today      = new Date();
-  const dayName    = today.toLocaleDateString("en-US",{weekday:"long"});
-  const dateStr    = today.toLocaleDateString("en-US",{month:"long",day:"numeric"});
-  const isSunday   = today.getDay()===0;
+  const dayName    = today.toLocaleDateString("en-US", { weekday:"long" });
+  const dateStr    = today.toLocaleDateString("en-US", { month:"long", day:"numeric" });
+  const isSunday   = today.getDay() === 0;
   const isWknd     = isWeekend();
-  const todayShort = today.toLocaleDateString("en-US",{weekday:"short"}).slice(0,3);
+  const todayShort = today.toLocaleDateString("en-US", { weekday:"short" }).slice(0,3);
 
-  const visibleDaily   = DAILY.filter(i => !i.weekdayOnly || !isWknd);
-  const dailyDone      = visibleDaily.filter(i => checked[i.id]).length;
-  const weeklyDone     = WEEKLY.filter(i => weekly[i.id]).length;
-  const workoutCount   = Object.values(workouts).filter(Boolean).length;
-  const todayWeekly    = WEEKLY.filter(i => i.day && i.day.includes(todayShort));
+  const visibleDaily = DAILY.filter(i => !i.weekdayOnly || !isWknd);
+  const dailyDone    = visibleDaily.filter(i => checked[i.id]).length;
+  const weeklyDone   = WEEKLY.filter(i => weekly[i.id]).length;
+  const workoutCount = Object.values(workouts).filter(Boolean).length;
 
   const pillarScores = PILLARS.map(p => {
     const d = visibleDaily.filter(n => n.pillar===p.id);
     const w = WEEKLY.filter(n => n.pillar===p.id);
-    const done = d.filter(n=>checked[n.id]).length + w.filter(n=>weekly[n.id]).length;
+    const done = d.filter(n => checked[n.id]).length + w.filter(n => weekly[n.id]).length;
     const total = d.length + w.length;
-    return { ...p, done, total, pct: total>0?Math.round((done/total)*100):0 };
+    return { ...p, pct: total > 0 ? Math.round((done/total)*100) : 0 };
   });
 
   const TABS = [
@@ -272,280 +576,85 @@ function App() {
     ...(isSunday ? [{ id:"sunday", label:"Sunday", icon:"✦" }] : []),
   ];
 
-  const safeArea = { paddingLeft:"env(safe-area-inset-left)", paddingRight:"env(safe-area-inset-right)" };
-
   return (
-    <div style={{ minHeight:"100vh", background:"#FAFAF8", display:"flex", flexDirection:"column" }}>
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:"#F5F2EE" }}>
 
       {/* ── Header ── */}
-      <div style={{ background:"#1E1B18", paddingTop:"env(safe-area-inset-top)", ...safeArea }}>
-        <div style={{ padding:"20px 24px 16px" }}>
-          <div className="dm" style={{ fontSize:10, letterSpacing:"0.2em", textTransform:"uppercase", color:"#B8954A", marginBottom:8 }}>Life OS · Chad</div>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end" }}>
+      <div style={{ background:"#1E1B18", paddingTop:"env(safe-area-inset-top)", flexShrink:0 }}>
+        <div style={{ padding:"18px 24px 0" }}>
+          <div className="dm" style={{ fontSize:10, letterSpacing:"0.22em", textTransform:"uppercase", color:"#B8954A", marginBottom:10 }}>
+            Life OS · Chad
+          </div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:18 }}>
             <div>
-              <div style={{ fontSize:30, fontWeight:"400", color:"#FAFAF8", lineHeight:1.1 }}>{dayName}</div>
-              <div className="dm" style={{ fontSize:13, color:"rgba(255,255,255,0.35)", marginTop:4 }}>{dateStr}</div>
+              <div style={{ fontSize:32, fontWeight:"400", color:"#FAFAF8", lineHeight:1.1 }}>{dayName}</div>
+              <div className="dm" style={{ fontSize:13, color:"rgba(255,255,255,0.32)", marginTop:5 }}>{dateStr}</div>
             </div>
-            <div style={{ display:"flex", gap:10 }}>
+            <div style={{ display:"flex", gap:18, paddingBottom:2 }}>
               {[
-                { val:`${dailyDone}/${visibleDaily.length}`,  label:"Today",    color:"#B8954A" },
-                { val:`${workoutCount}/4`,                     label:"Workouts", color:"#9B6355" },
+                { val:`${dailyDone}/${visibleDaily.length}`, label:"Today",    color:"#B8954A" },
+                { val:`${workoutCount}/4`,                    label:"Workouts", color:"#9B6355" },
               ].map(s => (
                 <div key={s.label} style={{ textAlign:"right" }}>
-                  <div style={{ fontSize:20, color:s.color, lineHeight:1 }}>{s.val}</div>
-                  <div className="dm" style={{ fontSize:9, color:"rgba(255,255,255,0.3)", letterSpacing:"0.1em", textTransform:"uppercase", marginTop:2 }}>{s.label}</div>
+                  <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, color:s.color, lineHeight:1 }}>{s.val}</div>
+                  <div className="dm" style={{ fontSize:9, color:"rgba(255,255,255,0.28)", letterSpacing:"0.12em", textTransform:"uppercase", marginTop:3 }}>{s.label}</div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Pillar bars */}
-        <div style={{ display:"flex", gap:1, padding:"0 24px 16px", ...safeArea }}>
-          {pillarScores.map(p => (
-            <div key={p.id} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-              <div style={{ width:"100%", height:3, background:"rgba(255,255,255,0.1)", borderRadius:2, overflow:"hidden" }}>
-                <div style={{ height:"100%", width:`${p.pct}%`, background:p.color, borderRadius:2, transition:"width 0.5s ease" }} />
+          {/* Pillar progress bars */}
+          <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+            {pillarScores.map(p => (
+              <div key={p.id} style={{ flex:1 }}>
+                <div className="dm" style={{ fontSize:8, letterSpacing:"0.06em", textTransform:"uppercase", color:"rgba(255,255,255,0.22)", marginBottom:5, textAlign:"center" }}>{p.label}</div>
+                <div style={{ height:3, background:"rgba(255,255,255,0.08)", borderRadius:2, overflow:"hidden" }}>
+                  <div style={{ height:"100%", width:`${p.pct}%`, background:p.color, borderRadius:2, transition:"width 0.5s ease" }} />
+                </div>
               </div>
-              <div className="dm" style={{ fontSize:8, letterSpacing:"0.06em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)" }}>{p.label}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Reflection ticker */}
-        <div style={{ borderTop:"1px solid rgba(255,255,255,0.07)", padding:"10px 24px 14px", ...safeArea }}>
-          <div className="dm" style={{ fontSize:12, color:"rgba(255,255,255,0.4)", fontStyle:"italic" }}>{REFLECTIONS[refIdx]}</div>
+        {/* Reflection */}
+        <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", padding:"10px 24px 14px" }}>
+          <div className="dm" style={{ fontSize:12, color:"rgba(255,255,255,0.35)", fontStyle:"italic" }}>{REFLECTIONS[refIdx]}</div>
         </div>
       </div>
 
       {/* ── Tab Bar ── */}
-      <div style={{ background:"#fff", borderBottom:"1px solid #F0EDE8", ...safeArea }}>
-        <div style={{ display:"flex", overflowX:"auto", padding:"0 8px" }}>
+      <div style={{ background:"#fff", borderBottom:"1px solid #EAE6E0", flexShrink:0 }}>
+        <div style={{ display:"flex", overflowX:"auto", paddingLeft:"env(safe-area-inset-left)", paddingRight:"env(safe-area-inset-right)" }}>
           {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{ flex:"0 0 auto", padding:"12px 14px", display:"flex", flexDirection:"column", alignItems:"center", gap:3, borderBottom:`2px solid ${tab===t.id?"#1E1B18":"transparent"}`, transition:"border-color 0.15s" }}>
-              <span style={{ fontSize:14, color:tab===t.id?"#1E1B18":"#C5BFB8" }}>{t.icon}</span>
-              <span className="dm" style={{ fontSize:10, letterSpacing:"0.06em", textTransform:"uppercase", color:tab===t.id?"#1E1B18":"#C5BFB8", fontWeight:tab===t.id?"600":"400", whiteSpace:"nowrap" }}>{t.label}</span>
+            <button key={t.id} onClick={() => setTab(t.id)}
+              style={{ flex:"0 0 auto", padding:"11px 16px", display:"flex", flexDirection:"column", alignItems:"center", gap:3, borderBottom:`2px solid ${tab===t.id ? "#1E1B18" : "transparent"}`, transition:"border-color 0.15s" }}>
+              <span style={{ fontSize:13, color: tab===t.id ? "#1E1B18" : "#C8C2BA" }}>{t.icon}</span>
+              <span className="dm" style={{ fontSize:9, letterSpacing:"0.07em", textTransform:"uppercase", color: tab===t.id ? "#1E1B18" : "#C8C2BA", fontWeight: tab===t.id ? "700" : "400", whiteSpace:"nowrap" }}>
+                {t.label}
+              </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Content ── */}
-      <div style={{ flex:1, overflowY:"auto", padding:"20px 20px 40px", maxWidth:600, width:"100%", margin:"0 auto", ...safeArea }}>
+      {/* ── Scrollable Content ── */}
+      <div style={{ flex:1, overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
+        <div style={{ padding:"22px 20px 32px", maxWidth:580, margin:"0 auto" }}>
+          {tab==="today"    && <TodayTab    checked={checked} setChecked={setChecked} weekly={weekly} setWeekly={setWeekly} isWknd={isWknd} todayShort={todayShort} />}
+          {tab==="schedule" && <ScheduleTab isWknd={isWknd} />}
+          {tab==="week"     && <WeekTab     weekly={weekly} setWeekly={setWeekly} weeklyDone={weeklyDone} />}
+          {tab==="meals"    && <MealsTab />}
+          {tab==="fitness"  && <FitnessTab  workouts={workouts} setWorkouts={setWorkouts} />}
+          {tab==="water"    && <WaterTab    bottles={bottles} setBottles={setBottles} />}
+          {tab==="sunday"   && <SundayTab   sunReflect={sunReflect} setSunReflect={setSunReflect} />}
+        </div>
 
-        {/* TODAY */}
-        {tab==="today" && (
-          <div className="fade-up">
-            <SectionLabel>Daily Non-Negotiables</SectionLabel>
-            <Card>
-              {visibleDaily.map((item,i,arr) => (
-                <CheckRow key={item.id} item={item} done={!!checked[item.id]} onToggle={() => setChecked(p=>({...p,[item.id]:!p[item.id]}))} />
-              ))}
-            </Card>
-            {todayWeekly.length > 0 && (
-              <>
-                <SectionLabel>Scheduled for Today</SectionLabel>
-                <Card>
-                  {todayWeekly.map(item => (
-                    <CheckRow key={item.id} item={item} done={!!weekly[item.id]} onToggle={() => setWeekly(p=>({...p,[item.id]:!p[item.id]}))} showDay />
-                  ))}
-                </Card>
-              </>
-            )}
+        {/* Footer */}
+        <div style={{ textAlign:"center", padding:"4px 24px calc(20px + env(safe-area-inset-bottom))" }}>
+          <div style={{ fontSize:11, color:"#C8C2BA", fontStyle:"italic", lineHeight:1.8 }}>
+            "Seek first the kingdom of God and his righteousness,<br/>
+            and all these things will be added to you." — Matthew 6:33
           </div>
-        )}
-
-        {/* SCHEDULE */}
-        {tab==="schedule" && (
-          <div className="fade-up">
-            <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:22, color:"#1E1B18", marginBottom:6 }}>Daily Rhythm</div>
-              <div className="dm" style={{ fontSize:13, color:"#AAA", lineHeight:1.6 }}>Built around 6am–9:30pm. Give yourself grace on hard nights.</div>
-            </div>
-            <Card style={{ padding:"4px 20px" }}>
-              {SCHEDULE.filter(b => !b.weekdayOnly || !isWknd).map((block,i,arr) => {
-                const color = block.pillar ? getPillar(block.pillar).color : "#D4CFC9";
-                return (
-                  <div key={i} style={{ display:"flex", gap:0, padding:"14px 0", borderBottom:i<arr.length-1?"1px solid #F0EDE8":"none" }}>
-                    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", width:20, flexShrink:0, marginRight:14 }}>
-                      <div style={{ width:8, height:8, borderRadius:"50%", background:color, marginTop:5, flexShrink:0 }} />
-                      {i<arr.length-1 && <div style={{ width:1.5, flex:1, background:"#F0EDE8", minHeight:10, marginTop:4 }} />}
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                        <span className="dm" style={{ fontSize:11, color:"#C5BFB8", minWidth:52 }}>{block.time}</span>
-                        <span className="dm" style={{ fontSize:14, fontWeight:"500", color:"#1E1B18" }}>{block.label}</span>
-                        {block.pillar && <span className="dm" style={{ fontSize:9, color, letterSpacing:"0.08em", textTransform:"uppercase" }}>{getPillar(block.pillar).label}</span>}
-                      </div>
-                      {block.note && <div className="dm" style={{ fontSize:12, color:"#B0A89E", fontStyle:"italic", marginTop:3, marginLeft:60 }}>{block.note}</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </Card>
-          </div>
-        )}
-
-        {/* WEEK */}
-        {tab==="week" && (
-          <div className="fade-up">
-            <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:22, color:"#1E1B18", marginBottom:6 }}>This Week</div>
-              <div className="dm" style={{ fontSize:13, color:"#AAA" }}>{weeklyDone} of {WEEKLY.length} intentions complete</div>
-            </div>
-            <Card>
-              {WEEKLY.map(item => (
-                <CheckRow key={item.id} item={item} done={!!weekly[item.id]} onToggle={() => setWeekly(p=>({...p,[item.id]:!p[item.id]}))} showFreq showDay />
-              ))}
-            </Card>
-            <div style={{ background:"#EDF3F8", borderRadius:14, padding:"16px 18px" }}>
-              <div className="dm" style={{ fontSize:11, fontWeight:"600", color:"#5B7A94", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:6 }}>⬡ Fellowship Target</div>
-              <div className="dm" style={{ fontSize:13, color:"#3A5A70", lineHeight:1.65 }}>Host or organize <strong>2 gatherings/month</strong> — neighbors, friends, or colleagues. Put it on the calendar before it disappears.</div>
-            </div>
-          </div>
-        )}
-
-        {/* MEALS */}
-        {tab==="meals" && <MealsTab />}
-
-        {/* FITNESS */}
-        {tab==="fitness" && (
-          <div className="fade-up">
-            <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:22, color:"#1E1B18", marginBottom:6 }}>Fitness</div>
-              <div className="dm" style={{ fontSize:13, color:"#AAA", lineHeight:1.6 }}>{FITNESS.desc}</div>
-            </div>
-            <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-              {["plan","log"].map(v => (
-                <button key={v} onClick={() => setFitView(v)} className="dm" style={{ flex:1, padding:"10px", borderRadius:10, border:`1.5px solid ${fitView===v?"#9B6355":"#E8E4DE"}`, background:fitView===v?"#9B6355":"transparent", color:fitView===v?"#fff":"#AAA", fontSize:12, fontWeight:"600", textTransform:"uppercase", letterSpacing:"0.06em" }}>{v==="plan"?"Weekly Plan":"Log Workouts"}</button>
-              ))}
-            </div>
-
-            {fitView==="plan" && (
-              <div>
-                <Card>
-                  {FITNESS.days.map((d,i,arr) => {
-                    const tc = d.type==="Cardio"?"#5B7A94":d.type==="Strength"?"#9B6355":d.type==="Flex"?"#5A8C6E":"#C5BFB8";
-                    return (
-                      <div key={i} style={{ padding:"14px 0", borderBottom:i<arr.length-1?"1px solid #F0EDE8":"none" }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
-                          <span style={{ fontSize:18, flexShrink:0 }}>{d.icon}</span>
-                          <span className="dm" style={{ fontWeight:"600", fontSize:13, color:"#1E1B18", minWidth:32 }}>{d.day}</span>
-                          <span className="dm" style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:tc+"18", color:tc, fontWeight:"600" }}>{d.type}</span>
-                          <span className="dm" style={{ fontSize:13, color:"#5C5248" }}>{d.label}</span>
-                        </div>
-                        <div className="dm" style={{ fontSize:12, color:"#B0A89E", marginLeft:38, lineHeight:1.5 }}>{d.detail}</div>
-                      </div>
-                    );
-                  })}
-                </Card>
-                <div style={{ background:"#FBF0EE", borderRadius:14, padding:"16px 18px" }}>
-                  <div className="dm" style={{ fontSize:11, fontWeight:"600", color:"#9B6355", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:8 }}>Coach's Notes</div>
-                  {FITNESS.tips.map((t,i) => <div key={i} className="dm" style={{ fontSize:12, color:"#7A4A3A", marginBottom:i<FITNESS.tips.length-1?8:0, paddingLeft:10, borderLeft:"2px solid #9B635540", lineHeight:1.5 }}>{t}</div>)}
-                </div>
-              </div>
-            )}
-
-            {fitView==="log" && (
-              <div>
-                <div style={{ background:"#fff", borderRadius:16, padding:"20px", marginBottom:12, boxShadow:"0 1px 3px rgba(0,0,0,0.06)", textAlign:"center" }}>
-                  <div style={{ fontSize:48, color:"#9B6355", lineHeight:1, marginBottom:4 }}>{workoutCount}</div>
-                  <div className="dm" style={{ fontSize:13, color:"#AAA" }}>of 4 workouts this week</div>
-                  <div style={{ display:"flex", gap:6, marginTop:14 }}>
-                    {[0,1,2,3].map(i => <div key={i} style={{ flex:1, height:6, borderRadius:3, background:i<workoutCount?"#9B6355":"#F0EDE8", transition:"background 0.3s" }} />)}
-                  </div>
-                </div>
-                <Card>
-                  {FITNESS.days.filter(d=>d.type!=="Rest").map((d,i,arr) => {
-                    const done = workouts[d.day];
-                    const tc = d.type==="Cardio"?"#5B7A94":d.type==="Strength"?"#9B6355":"#5A8C6E";
-                    return (
-                      <div key={i} onClick={() => setWorkouts(p=>({...p,[d.day]:!p[d.day]}))} style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 0", borderBottom:i<arr.length-1?"1px solid #F0EDE8":"none", cursor:"pointer" }}>
-                        <div style={{ width:22, height:22, borderRadius:6, flexShrink:0, border:`2px solid ${done?"#9B6355":"#D4CFC9"}`, background:done?"#9B6355":"transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}>
-                          {done && <svg width="12" height="9" viewBox="0 0 12 9" fill="none"><path d="M1 4L4.5 7.5L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                        </div>
-                        <span style={{ fontSize:18 }}>{d.icon}</span>
-                        <div style={{ flex:1 }}>
-                          <div className="dm" style={{ fontSize:14, fontWeight:"500", color:done?"#AAA":"#1E1B18", textDecoration:done?"line-through":"none" }}>{d.day} — {d.label}</div>
-                        </div>
-                        <span className="dm" style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:tc+"18", color:tc, fontWeight:"600" }}>{d.type}</span>
-                      </div>
-                    );
-                  })}
-                </Card>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* WATER */}
-        {tab==="water" && (
-          <div className="fade-up">
-            <div style={{ marginBottom:24 }}>
-              <div style={{ fontSize:22, color:"#1E1B18", marginBottom:6 }}>Water</div>
-              <div className="dm" style={{ fontSize:13, color:"#AAA" }}>3 × 40oz bottles · 120oz total</div>
-            </div>
-
-            <div style={{ background:"#fff", borderRadius:20, padding:"28px 20px", marginBottom:16, boxShadow:"0 1px 3px rgba(0,0,0,0.06)", textAlign:"center" }}>
-              <div style={{ fontSize:56, color:"#5B7A94", lineHeight:1, marginBottom:4 }}>{bottles*40}<span style={{ fontSize:20, color:"#C5BFB8" }}>oz</span></div>
-              <div className="dm" style={{ fontSize:13, color:"#AAA", marginBottom:24 }}>{bottles>=3?"Goal reached — great work 💧":`${(3-bottles)*40}oz to go`}</div>
-
-              <div style={{ display:"flex", justifyContent:"center", gap:20, marginBottom:24 }}>
-                {[0,1,2].map(i => {
-                  const filled = i<bottles;
-                  const col = "#5B7A94";
-                  const labels = ["Morning","Afternoon","Evening"];
-                  const times  = ["by noon","by 4pm","by 7pm"];
-                  return (
-                    <div key={i} onClick={() => setBottles(b => b===i+1?i:i+1)} style={{ cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-                      <svg width="48" height="80" viewBox="0 0 60 100">
-                        <rect x="10" y="20" width="40" height="72" rx="8" fill={filled?col:"#F0EDE8"} stroke={filled?col:"#D4CFC9"} strokeWidth="2" style={{transition:"fill 0.25s"}}/>
-                        <rect x="20" y="10" width="20" height="14" rx="4" fill={filled?col:"#F0EDE8"} stroke={filled?col:"#D4CFC9"} strokeWidth="2" style={{transition:"fill 0.25s"}}/>
-                        <rect x="22" y="4" width="16" height="10" rx="3" fill={filled?"#B8954A":"#D4CFC9"} style={{transition:"fill 0.25s"}}/>
-                        {filled && <rect x="12" y="30" width="36" height="60" rx="6" fill="rgba(255,255,255,0.15)"/>}
-                        {[50,62,74].map(y=><line key={y} x1="18" y1={y} x2="42" y2={y} stroke={filled?"rgba(255,255,255,0.3)":"#E8E4DE"} strokeWidth="1.5"/>)}
-                      </svg>
-                      <div className="dm" style={{ fontSize:12, color:filled?col:"#C5BFB8", fontWeight:filled?"600":"400" }}>{labels[i]}</div>
-                      <div className="dm" style={{ fontSize:10, color:"#C5BFB8" }}>{times[i]}</div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
-                <button onClick={() => setBottles(b=>Math.min(3,b+1))} className="dm" style={{ padding:"13px 32px", borderRadius:12, background:"#5B7A94", color:"#fff", fontSize:14, fontWeight:"600" }}>+ Bottle</button>
-                <button onClick={() => setBottles(b=>Math.max(0,b-1))} className="dm" style={{ padding:"13px 24px", borderRadius:12, border:"1.5px solid #E8E4DE", background:"transparent", color:"#AAA", fontSize:14 }}>−</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* SUNDAY */}
-        {tab==="sunday" && (
-          <div className="fade-up">
-            <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:22, color:"#1E1B18", marginBottom:6 }}>Sunday Review</div>
-              <div className="dm" style={{ fontSize:13, color:"#AAA", lineHeight:1.6 }}>Set aside 10–15 min. Be honest. This is between you and God.</div>
-            </div>
-            {SUNDAY_QS.map((q,i) => (
-              <div key={i} style={{ marginBottom:16 }}>
-                <div style={{ fontSize:14, color:"#1E1B18", marginBottom:8, fontStyle:"italic", lineHeight:1.5 }}>{q}</div>
-                <textarea value={sunReflect[i]||""} onChange={e=>setSunReflect(p=>({...p,[i]:e.target.value}))} placeholder="Write freely..." style={{ width:"100%", minHeight:72, borderRadius:12, border:"1.5px solid #E8E4DE", background:"#fff", fontFamily:"'Playfair Display', Georgia, serif", fontSize:13, color:"#1E1B18", padding:"12px 14px", resize:"vertical", lineHeight:1.65, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }} />
-              </div>
-            ))}
-            <div style={{ background:"#FDF8EE", borderRadius:14, padding:"16px 18px", textAlign:"center", marginTop:8 }}>
-              <div style={{ fontSize:14, color:"#B8954A", fontStyle:"italic" }}>"Let each week begin again with grace."</div>
-            </div>
-          </div>
-        )}
-
-      </div>
-
-      {/* Footer */}
-      <div style={{ textAlign:"center", padding:"16px 24px calc(16px + env(safe-area-inset-bottom))", borderTop:"1px solid #F0EDE8", background:"#fff" }}>
-        <div style={{ fontSize:11, color:"#C5BFB8", fontStyle:"italic", lineHeight:1.7 }}>
-          "Seek first the kingdom of God and his righteousness,<br />
-          and all these things will be added to you." — Matthew 6:33
         </div>
       </div>
 

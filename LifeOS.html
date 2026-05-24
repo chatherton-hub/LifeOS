@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Life OS · Chad</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #F7F4EF; font-family: 'Playfair Display', Georgia, serif; color: #2C2825; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #F7F4EF; } ::-webkit-scrollbar-thumb { background: #DDD9D2; border-radius: 3px; }
+  textarea:focus { outline: none; border-color: #C8A96E !important; }
+  button:hover { opacity: 0.88; }
+  .tab-scroll { scrollbar-width: none; } .tab-scroll::-webkit-scrollbar { display: none; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.3s ease forwards; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const PILLARS = [
+  { id: "faith",      label: "Faith",      icon: "✝", color: "#C8A96E", light: "#FDF6EC" },
+  { id: "family",     label: "Family",     icon: "♥", color: "#7B9E87", light: "#EEF5F0" },
+  { id: "fellowship", label: "Fellowship", icon: "⬡", color: "#7A8FA6", light: "#EDF2F7" },
+  { id: "fitness",    label: "Fitness",    icon: "◎", color: "#B07A6E", light: "#FAF0EE" },
+  { id: "home",       label: "Home",       icon: "⌂", color: "#8A7BA6", light: "#F2EFF8" },
+];
+
+const SCHEDULE = [
+  { time: "6:00 AM",  label: "Wake up",               pillar: "faith",   note: "Start with intention, not your phone" },
+  { time: "6:05 AM",  label: "Devotion time",          pillar: "faith",   note: "Bible verse, prayer, YouVersion — even 10 min counts" },
+  { time: "6:20 AM",  label: "Peloton / workout",      pillar: "fitness", note: "4x/week — see Fitness tab for your plan" },
+  { time: "7:15 AM",  label: "Shower + get ready",     pillar: null,      note: null },
+  { time: "7:45 AM",  label: "Family morning time",    pillar: "family",  note: "Present with wife & daughters before the day splits" },
+  { time: "8:30 AM",  label: "Work begins",            pillar: null,      note: "First 40oz bottle filled and on your desk" },
+  { time: "12:00 PM", label: "Lunch + second bottle",  pillar: "fitness", note: "Protein + fiber focus — see Meals tab for ideas" },
+  { time: "5:30 PM",  label: "Hard stop from work",    pillar: "family",  note: "Close Slack. Close email. Walk away." },
+  { time: "5:45 PM",  label: "Family evening time",    pillar: "family",  note: "Phone-free — present with wife & daughters" },
+  { time: "6:30 PM",  label: "Dinner + third bottle",  pillar: "fitness", note: "Sit down together when possible" },
+  { time: "8:00 PM",  label: "House reset",            pillar: "home",    note: "10 min — tidy up, close down the house for the night" },
+  { time: "8:30 PM",  label: "Wind down",              pillar: "faith",   note: "Gratitude, reflection — no screens after this" },
+  { time: "9:30 PM",  label: "Lights out",             pillar: null,      note: "Protect this — 8.5hrs toward 6am" },
+];
+
+const FITNESS_PLAN = {
+  description: "4 days on, 3 days rest. Alternating cardio and strength to maximize fat burn and build core/chest tone.",
+  weekStructure: [
+    { day: "Mon", type: "Cardio",   label: "Peloton HIIT Ride",      detail: "20–30 min Power Zone or HIIT ride. Heart rate 75–85% max. Burns fat, builds endurance.", icon: "🚴" },
+    { day: "Tue", type: "Strength", label: "Core & Chest",           detail: "30 min: Push-ups (3×12), Plank holds (3×45s), Dumbbell press (3×12), Mountain climbers (3×20).", icon: "💪" },
+    { day: "Wed", type: "Rest",     label: "Active Recovery",        detail: "Walk, stretch, or light Peloton recovery ride. Keep moving without taxing the body.", icon: "🧘" },
+    { day: "Thu", type: "Cardio",   label: "Peloton Endurance Ride", detail: "30–45 min moderate pace. Zones 2–3. Sustained fat burn, builds base fitness.", icon: "🚴" },
+    { day: "Fri", type: "Strength", label: "Full Body + Core",       detail: "30 min: Squats (3×15), Dumbbell rows (3×12), Bicycle crunches (3×20), Burpees (3×10).", icon: "💪" },
+    { day: "Sat", type: "Flex",     label: "Golf or Bonus Ride",     detail: "Golf counts as movement. Or a longer Peloton ride if family rhythm allows.", icon: "⛳" },
+    { day: "Sun", type: "Rest",     label: "Sabbath + Family",       detail: "Church, family, rest. No workout guilt. This is part of the plan.", icon: "✝" },
+  ],
+  tips: [
+    "You cannot out-exercise a bad diet — focus on protein and fiber at every meal",
+    "Belly fat responds best to consistent cardio + caloric deficit, not just crunches",
+    "4x/week consistency beats 7x/week for 2 weeks then burnout",
+    "Log your workouts — the streak is your accountability",
+  ]
+};
+
+const MEAL_PRINCIPLES = [
+  { icon: "🥩", label: "Protein first",       detail: "Aim for 30–40g per meal. Keeps you full, builds muscle, burns fat." },
+  { icon: "🥦", label: "Fiber with every meal",detail: "Vegetables, beans, or fruit at every sitting — non-negotiable." },
+  { icon: "🔥", label: "Blackstone-friendly",  detail: "Simple, flat-top cooking. If it can be griddled, it counts." },
+  { icon: "🍽️", label: "Cook for the family",  detail: "You're showing up as provider. Simple wins are still wins." },
+];
+
+const DAILY = [
+  { id: "devotion",         pillar: "faith",     label: "Morning devotion",                detail: "Bible verse, prayer, or devotional — 6:05am" },
+  { id: "water",            pillar: "fitness",   label: "Hit 120oz water goal",            detail: "3 full 40oz bottles across the day" },
+  { id: "present_wife",     pillar: "family",    label: "Intentional time with wife",      detail: "Present, not just in the same room" },
+  { id: "present_daughters",pillar: "family",    label: "Intentional time with both daughters", detail: "Each girl — even small moments count" },
+  { id: "workoff",          pillar: "family",    label: "Hard stop from work by 5:30pm",   detail: "Close it down. Be home, not just home." },
+  { id: "protein_fiber",    pillar: "fitness",   label: "Protein + fiber at every meal",   detail: "No meal without both — see Meals tab" },
+  { id: "house_reset",      pillar: "home",      label: "House reset before bed",          detail: "10 min tidy — dishes, counters, toys picked up" },
+  { id: "gratitude",        pillar: "faith",     label: "Name one thing you're grateful for", detail: "Say it or write it — before lights out" },
+];
+
+const WEEKLY = [
+  { id: "church",           pillar: "faith",      label: "Attend church",                          freq: "Weekly",   day: "Sun" },
+  { id: "peloton_4",        pillar: "fitness",    label: "Complete 4 workouts (ride or strength)", freq: "4x/week",  day: null },
+  { id: "meal_plan",        pillar: "home",       label: "Plan meals with wife for the week",      freq: "Weekly",   day: "Sat" },
+  { id: "grocery",          pillar: "home",       label: "Grocery run (lead this with your wife)", freq: "Weekly",   day: "Sat/Sun" },
+  { id: "trash",            pillar: "home",       label: "Take bins out — trash & recycling",      freq: "Weekly",   day: "Tue" },
+  { id: "finances",         pillar: "home",       label: "Review finances — are we on track?",     freq: "Weekly",   day: "Wed" },
+  { id: "yardwork",         pillar: "home",       label: "Yard work + house clean-up",             freq: "Weekly",   day: "Sat" },
+  { id: "date",             pillar: "family",     label: "Intentional one-on-one time with wife",  freq: "Weekly",   day: null },
+  { id: "daughter1",        pillar: "family",     label: "Special moment with daughter #1",        freq: "Weekly",   day: null },
+  { id: "daughter2",        pillar: "family",     label: "Special moment with daughter #2",        freq: "Weekly",   day: null },
+  { id: "fellowship_event", pillar: "fellowship", label: "Host or organize a gathering",           freq: "2x/month", day: null },
+  { id: "serve",            pillar: "fellowship", label: "Do something for someone else",          freq: "Weekly",   day: null },
+];
+
+const SUNDAY_QS = [
+  "Did I lead my family the way God calls me to this week?",
+  "Was I present with my wife — really present?",
+  "Did I move my body 4 times? If not, what got in the way?",
+  "Did I let work steal time it wasn't owed?",
+  "Did I make space for others — friends, neighbors, colleagues?",
+  "Did I show up in the kitchen and help carry the load at home?",
+  "What's one thing I want to do better next week?",
+  "What am I most grateful for from this week?",
+];
+
+const REFLECTIONS = [
+  "Did I lead my family well today?",
+  "Was I present or just physically there?",
+  "Did I let work steal time from what matters?",
+  "Did I move my body today?",
+  "Did I put God first — or just intend to?",
+  "Did I support my wife today?",
+  "Did I reset the house before bed?",
+];
+
+function getPillar(id) { return PILLARS.find(p => p.id === id) || { color: "#AAA", light: "#F9F9F9", label: "" }; }
+
+function getTodayKey() { return new Date().toISOString().split("T")[0]; }
+function getWeekKey() {
+  const d = new Date(), day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(new Date().setDate(diff)).toISOString().split("T")[0];
+}
+function getSundayKey() {
+  const d = new Date(), day = d.getDay();
+  const diff = d.getDate() + (day === 0 ? 0 : 7 - day);
+  return new Date(new Date().setDate(diff)).toISOString().split("T")[0];
+}
+function ls(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
+function ss(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+// ── Meal Plan ──────────────────────────────────────────────────────────────
+function MealTab({ weekKey }) {
+  const SK = `lifeos_meal_${weekKey}`, GK = `lifeos_grocery_${weekKey}`;
+  const [plan, setPlan]       = useState(() => ls(SK, null));
+  const [gchecked, setGC]     = useState(() => ls(GK, {}));
+  const [loading, setLoading] = useState(false);
+  const [view, setView]       = useState("ideas");
+  const [error, setError]     = useState(null);
+
+  useEffect(() => { ss(SK, plan); }, [plan]);
+  useEffect(() => { ss(GK, gchecked); }, [gchecked]);
+
+  const generate = async () => {
+    setLoading(true); setError(null);
+    try {
+      const seed = Math.floor(Date.now() / (7*24*60*60*1000));
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          system: `You generate weekly meal plans for a beginner home cook with a Blackstone griddle. Family-friendly, high protein, high fiber. No restrictions. Max 5 ingredients per recipe. Vary each week. Seed: ${seed}. Return ONLY valid JSON, no markdown, no backticks.`,
+          messages: [{ role: "user", content: `Return ONLY this JSON:
+{"theme":"catchy weekly theme","meals":[{"type":"Breakfast"|"Lunch"|"Dinner"|"Snack","name":"...","protein":"XXg","fiber":"XXg","note":"...","blackstone":true|false}],"groceries":["item",...],"cookingTip":"..."}` }]
+        })
+      });
+      const data = await res.json();
+      const raw = data.content?.find(b => b.type === "text")?.text || "";
+      setPlan(JSON.parse(raw.replace(/```json|```/g, "").trim()));
+      setGC({});
+    } catch(e) { setError("Couldn't generate meal plan. Check your internet connection."); }
+    setLoading(false);
+  };
+
+  const typeIcons = { Breakfast:"🌅", Lunch:"☀️", Dinner:"🌙", Snack:"⚡" };
+  const s = (x) => ({ fontFamily: "'DM Sans', sans-serif", ...x });
+
+  return (
+    <div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:18 }}>
+        {MEAL_PRINCIPLES.map((p,i) => (
+          <div key={i} style={{ padding:"10px 12px", background:"#EEF5F0", borderRadius:10, border:"1px solid #7B9E8730" }}>
+            <div style={{ fontSize:16, marginBottom:4 }}>{p.icon}</div>
+            <div style={s({ fontSize:11, fontWeight:"600", color:"#7B9E87", marginBottom:3 })}>{p.label}</div>
+            <div style={s({ fontSize:10, color:"#5C5248", lineHeight:1.45 })}>{p.detail}</div>
+          </div>
+        ))}
+      </div>
+
+      {!plan && !loading && (
+        <div style={{ textAlign:"center", padding:"28px 0" }}>
+          <div style={s({ fontSize:13, color:"#9A9087", fontStyle:"italic", marginBottom:18, lineHeight:1.6 })}>Generate a fresh AI meal plan for this week.<br/>New theme and ideas every time.</div>
+          <button onClick={generate} style={s({ padding:"12px 30px", borderRadius:10, border:"none", background:"#7B9E87", color:"#fff", fontSize:13, fontWeight:"600", cursor:"pointer", letterSpacing:"0.04em" })}>✦ Generate This Week's Meal Plan</button>
+        </div>
+      )}
+      {loading && (
+        <div style={{ textAlign:"center", padding:"36px 0" }}>
+          <div style={{ fontSize:28, marginBottom:10 }}>🍳</div>
+          <div style={s({ fontSize:13, color:"#9A9087", fontStyle:"italic" })}>Building your meal plan...</div>
+        </div>
+      )}
+      {error && <div style={s({ padding:"12px 14px", background:"#FAF0EE", borderRadius:8, border:"1px solid #B07A6E40", fontSize:12, color:"#B07A6E", marginBottom:14 })}>{error}</div>}
+
+      {plan && !loading && (
+        <div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+            <div>
+              <div style={s({ fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#9A9087" })}>This Week's Theme</div>
+              <div style={{ fontSize:17, color:"#7B9E87", marginTop:3 }}>{plan.theme}</div>
+            </div>
+            <button onClick={generate} style={s({ padding:"6px 14px", borderRadius:8, border:"1px solid #7B9E8750", background:"#EEF5F0", color:"#7B9E87", fontSize:11, cursor:"pointer", fontWeight:"600" })}>↻ New Plan</button>
+          </div>
+          {plan.cookingTip && (
+            <div style={{ padding:"10px 13px", background:"#FDF6EC", borderRadius:8, border:"1px solid #C8A96E30", marginBottom:14 }}>
+              <span style={s({ fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"#C8A96E", fontWeight:"600" })}>Tip of the Week  </span>
+              <span style={s({ fontSize:12, color:"#5C5248", fontStyle:"italic" })}>{plan.cookingTip}</span>
+            </div>
+          )}
+          <div style={{ display:"flex", gap:6, marginBottom:14 }}>
+            {["ideas","grocery"].map(v => (
+              <button key={v} onClick={() => setView(v)} style={s({ padding:"5px 14px", borderRadius:20, border:`1px solid ${view===v?"#7B9E87":"#DDD9D2"}`, background:view===v?"#7B9E87":"transparent", color:view===v?"#fff":"#9A9087", fontSize:11, fontWeight:view===v?"600":"400", cursor:"pointer", textTransform:"uppercase", letterSpacing:"0.05em" })}>{v==="ideas"?"Meal Ideas":"Grocery List"}</button>
+            ))}
+          </div>
+          {view==="ideas" && ["Breakfast","Lunch","Dinner","Snack"].map(type => {
+            const items = plan.meals?.filter(m => m.type===type)||[];
+            if(!items.length) return null;
+            return (
+              <div key={type} style={{ marginBottom:18 }}>
+                <div style={s({ fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#9A9087", marginBottom:8, display:"flex", alignItems:"center", gap:6 })}>
+                  <span style={{ fontSize:14 }}>{typeIcons[type]}</span>{type}
+                </div>
+                {items.map((meal,mi) => (
+                  <div key={mi} style={{ padding:"12px 14px", background:"#FAFAF8", borderRadius:10, border:"1px solid #E8E4DE", marginBottom:6 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, flexWrap:"wrap" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:7, flexWrap:"wrap" }}>
+                        {meal.blackstone && <span style={s({ fontSize:10, padding:"2px 8px", borderRadius:20, background:"#B07A6E18", color:"#B07A6E" })}>🔥 Blackstone</span>}
+                        <span style={s({ fontSize:13, fontWeight:"500", color:"#2C2825" })}>{meal.name}</span>
+                      </div>
+                      <div style={{ display:"flex", gap:5, flexShrink:0 }}>
+                        <span style={s({ fontSize:10, padding:"2px 8px", borderRadius:20, background:"#B07A6E18", color:"#B07A6E" })}>{meal.protein} protein</span>
+                        <span style={s({ fontSize:10, padding:"2px 8px", borderRadius:20, background:"#7B9E8718", color:"#7B9E87" })}>{meal.fiber} fiber</span>
+                      </div>
+                    </div>
+                    {meal.note && <div style={s({ fontSize:11, color:"#9A9087", marginTop:4, fontStyle:"italic" })}>{meal.note}</div>}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          {view==="grocery" && (
+            <div>
+              <div style={s({ fontSize:12, color:"#9A9087", fontStyle:"italic", marginBottom:12, lineHeight:1.5 })}>Plan with your wife on Saturday — tap to check off as you shop.</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                {(plan.groceries||[]).map((item,i) => {
+                  const done = gchecked[i];
+                  return (
+                    <div key={i} onClick={() => setGC(p => ({...p,[i]:!p[i]}))}
+                      style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 11px", borderRadius:8, background:done?"#EEF5F0":"#FAFAF8", border:`1px solid ${done?"#7B9E8750":"#E8E4DE"}`, cursor:"pointer" }}>
+                      <div style={{ width:17, height:17, borderRadius:4, flexShrink:0, border:`2px solid ${done?"#7B9E87":"#CCC"}`, background:done?"#7B9E87":"transparent", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                        {done && <span style={{ color:"#fff", fontSize:10 }}>✓</span>}
+                      </div>
+                      <span style={s({ fontSize:12, color:done?"#7B9E87":"#2C2825", textDecoration:done?"line-through":"none" })}>{item}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <button onClick={()=>setGC({})} style={s({ marginTop:12, padding:"6px 14px", borderRadius:8, border:"1px solid #DDD9D2", background:"#F7F4EF", color:"#9A9087", fontSize:11, cursor:"pointer" })}>Clear List</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main App ───────────────────────────────────────────────────────────────
+function App() {
+  const todayKey = getTodayKey();
+  const weekKey  = getWeekKey();
+
+  const [checked,    setChecked]    = useState(() => ls(`lifeos_daily_${todayKey}`, {}));
+  const [weekly,     setWeekly]     = useState(() => ls(`lifeos_week_${weekKey}`, {}));
+  const [bottles,    setBottles]    = useState(() => ls(`lifeos_water_${todayKey}`, 0));
+  const [workouts,   setWorkouts]   = useState(() => ls(`lifeos_workout_${weekKey}`, {}));
+  const [sunReflect, setSunReflect] = useState(() => ls(`lifeos_sunday_${getSundayKey()}`, {}));
+  const [tab,        setTab]        = useState("today");
+  const [fitView,    setFitView]    = useState("plan");
+  const [refIdx,     setRefIdx]     = useState(0);
+
+  useEffect(() => { ss(`lifeos_daily_${todayKey}`, checked); },    [checked]);
+  useEffect(() => { ss(`lifeos_week_${weekKey}`, weekly); },       [weekly]);
+  useEffect(() => { ss(`lifeos_water_${todayKey}`, bottles); },    [bottles]);
+  useEffect(() => { ss(`lifeos_workout_${weekKey}`, workouts); },  [workouts]);
+  useEffect(() => { ss(`lifeos_sunday_${getSundayKey()}`, sunReflect); }, [sunReflect]);
+  useEffect(() => {
+    const t = setInterval(() => setRefIdx(x => (x+1) % REFLECTIONS.length), 6000);
+    return () => clearInterval(t);
+  }, []);
+
+  const today        = new Date();
+  const dayName      = today.toLocaleDateString("en-US", { weekday:"long" });
+  const dateStr      = today.toLocaleDateString("en-US", { month:"long", day:"numeric", year:"numeric" });
+  const isSunday     = today.getDay() === 0;
+  const todayShort   = today.toLocaleDateString("en-US", { weekday:"short" }).slice(0,3);
+
+  const dailyDone    = DAILY.filter(n => checked[n.id]).length;
+  const weeklyDone   = WEEKLY.filter(n => weekly[n.id]).length;
+  const workoutCount = Object.values(workouts).filter(Boolean).length;
+
+  const pillarScores = PILLARS.map(p => {
+    const d = DAILY.filter(n => n.pillar===p.id);
+    const w = WEEKLY.filter(n => n.pillar===p.id);
+    const done = d.filter(n=>checked[n.id]).length + w.filter(n=>weekly[n.id]).length;
+    const total = d.length + w.length;
+    return { ...p, done, total, pct: total>0 ? Math.round((done/total)*100) : 0 };
+  });
+
+  const todayWeekly = WEEKLY.filter(i => i.day && i.day.includes(todayShort));
+
+  const TABS = [
+    { id:"today",    label:"Today" },
+    { id:"schedule", label:"Schedule" },
+    { id:"week",     label:"This Week" },
+    { id:"meals",    label:"🥗 Meals" },
+    { id:"fitness",  label:"◎ Fitness" },
+    { id:"water",    label:"💧 Water" },
+    ...(isSunday ? [{ id:"sunday", label:"☀️ Sunday" }] : []),
+  ];
+
+  const dm = x => ({ fontFamily:"'DM Sans', sans-serif", ...x });
+
+  function CheckRow({ item, done, onToggle, showFreq=false, showDay=false }) {
+    const p = getPillar(item.pillar);
+    return (
+      <div onClick={onToggle} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderRadius:10, background:done?p.light:"#FAFAF8", border:`1px solid ${done?p.color+"55":"#E8E4DE"}`, cursor:"pointer", transition:"all 0.18s" }}>
+        <div style={{ width:20, height:20, borderRadius:5, flexShrink:0, border:`2px solid ${done?p.color:"#CCC"}`, background:done?p.color:"transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.18s" }}>
+          {done && <span style={{ color:"#fff", fontSize:11, lineHeight:1 }}>✓</span>}
+        </div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={dm({ fontSize:13, fontWeight:"500", color:done?p.color:"#2C2825", textDecoration:done?"line-through":"none", textDecorationColor:p.color })}>{item.label}</div>
+          {item.detail && <div style={dm({ fontSize:11, color:"#9A9087", marginTop:2 })}>{item.detail}</div>}
+        </div>
+        <div style={{ display:"flex", gap:5, alignItems:"center", flexShrink:0 }}>
+          {showDay && item.day && <div style={dm({ fontSize:10, padding:"2px 7px", borderRadius:20, background:"#EDE9E2", color:"#9A9087" })}>{item.day}</div>}
+          {showFreq && item.freq && <div style={dm({ fontSize:10, padding:"2px 7px", borderRadius:20, background:p.color+"22", color:p.color })}>{item.freq}</div>}
+          <div style={dm({ fontSize:9, letterSpacing:"0.08em", textTransform:"uppercase", color:p.color, opacity:0.85 })}>{p.label}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight:"100vh", background:"#F7F4EF", maxWidth:780, margin:"0 auto" }}>
+
+      {/* ── Header ── */}
+      <div style={{ background:"#2C2825", padding:"22px 24px 20px", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(45deg,transparent,transparent 38px,rgba(255,255,255,0.018) 38px,rgba(255,255,255,0.018) 39px)", pointerEvents:"none" }} />
+        <div style={{ position:"relative", display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
+          <div>
+            <div style={dm({ fontSize:10, letterSpacing:"0.22em", color:"#C8A96E", textTransform:"uppercase", marginBottom:6 })}>Life OS · Chad</div>
+            <div style={{ fontSize:26, fontWeight:"400", color:"#F7F4EF", lineHeight:1.15 }}>{dayName}</div>
+            <div style={dm({ fontSize:12, color:"#9A9087", marginTop:4 })}>{dateStr}</div>
+          </div>
+          <div style={{ display:"flex", gap:7, flexWrap:"wrap", justifyContent:"flex-end" }}>
+            {[
+              { val:`${dailyDone}/${DAILY.length}`,   label:"Daily",    color:"#C8A96E" },
+              { val:`${weeklyDone}/${WEEKLY.length}`, label:"Weekly",   color:"#7B9E87" },
+              { val:`${workoutCount}/4`,               label:"Workouts", color:"#B07A6E" },
+            ].map(s => (
+              <div key={s.label} style={{ background:`${s.color}20`, border:`1px solid ${s.color}40`, borderRadius:9, padding:"7px 13px", textAlign:"center" }}>
+                <div style={{ fontSize:19, color:s.color }}>{s.val}</div>
+                <div style={dm({ fontSize:9, color:"#9A9087", letterSpacing:"0.1em", textTransform:"uppercase" })}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Reflection Banner ── */}
+      <div style={{ background:"#EDE9E2", borderBottom:"1px solid #DDD9D2", padding:"10px 24px", display:"flex", alignItems:"center", gap:12 }}>
+        <span style={dm({ fontSize:10, letterSpacing:"0.15em", textTransform:"uppercase", color:"#9A9087", whiteSpace:"nowrap" })}>Reflect →</span>
+        <span style={{ fontSize:13, color:"#5C5248", fontStyle:"italic" }}>{REFLECTIONS[refIdx]}</span>
+      </div>
+
+      {/* ── Pillar Scores ── */}
+      <div style={{ padding:"16px 24px 0", display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:8 }}>
+        {pillarScores.map(p => (
+          <div key={p.id} style={{ background:"#fff", borderRadius:10, padding:"12px 10px", border:`1px solid ${p.color}28`, borderTop:`3px solid ${p.color}` }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+              <span style={{ fontSize:13 }}>{p.icon}</span>
+              <span style={dm({ fontSize:10, color:p.color, fontWeight:"700" })}>{p.pct}%</span>
+            </div>
+            <div style={dm({ fontSize:9, fontWeight:"600", letterSpacing:"0.07em", textTransform:"uppercase", color:"#5C5248", marginBottom:6 })}>{p.label}</div>
+            <div style={{ height:3, background:"#EDE9E2", borderRadius:2, overflow:"hidden" }}>
+              <div style={{ height:"100%", width:`${p.pct}%`, background:p.color, borderRadius:2, transition:"width 0.5s ease" }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Tabs ── */}
+      <div className="tab-scroll" style={{ padding:"14px 24px 0", display:"flex", gap:2, overflowX:"auto" }}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={dm({ padding:"6px 13px", borderRadius:"7px 7px 0 0", border:"1px solid #DDD9D2", borderBottom:tab===t.id?"1px solid #F7F4EF":"1px solid #DDD9D2", background:tab===t.id?"#F7F4EF":"#EDE9E2", fontSize:10, fontWeight:tab===t.id?"700":"400", letterSpacing:"0.07em", textTransform:"uppercase", color:tab===t.id?"#2C2825":"#9A9087", cursor:"pointer", whiteSpace:"nowrap" })}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* ── Panel ── */}
+      <div style={{ margin:"0 24px 36px", background:"#fff", border:"1px solid #DDD9D2", borderRadius:"0 10px 10px 10px", padding:22 }} className="fade-in">
+
+        {/* TODAY */}
+        {tab==="today" && (
+          <div>
+            <div style={dm({ fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#9A9087", marginBottom:13 })}>Daily Non-Negotiables</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+              {DAILY.map(item => <CheckRow key={item.id} item={item} done={!!checked[item.id]} onToggle={() => setChecked(p=>({...p,[item.id]:!p[item.id]}))} />)}
+            </div>
+            {todayWeekly.length > 0 && (
+              <div style={{ marginTop:22 }}>
+                <div style={dm({ fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#9A9087", marginBottom:13 })}>Today's Scheduled Tasks</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+                  {todayWeekly.map(item => <CheckRow key={item.id} item={item} done={!!weekly[item.id]} onToggle={() => setWeekly(p=>({...p,[item.id]:!p[item.id]}))} showDay />)}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SCHEDULE */}
+        {tab==="schedule" && (
+          <div>
+            <div style={dm({ fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#9A9087", marginBottom:4 })}>Ideal Weekday Rhythm</div>
+            <div style={{ fontSize:12, color:"#9A9087", fontStyle:"italic", marginBottom:18, lineHeight:1.6 }}>Built around 6am wake-up and 9:30pm lights out. Give yourself grace on hard nights.</div>
+            {SCHEDULE.map((block,i) => {
+              const color = block.pillar ? getPillar(block.pillar).color : "#CCC";
+              return (
+                <div key={i} style={{ display:"flex" }}>
+                  <div style={{ display:"flex", flexDirection:"column", alignItems:"center", width:26, flexShrink:0 }}>
+                    <div style={{ width:9, height:9, borderRadius:"50%", background:color, marginTop:18, flexShrink:0 }} />
+                    {i < SCHEDULE.length-1 && <div style={{ width:2, flex:1, background:"#EDE9E2", minHeight:14 }} />}
+                  </div>
+                  <div style={{ flex:1, paddingBottom:13, paddingLeft:10 }}>
+                    <div style={{ display:"flex", alignItems:"baseline", gap:9, marginTop:12, flexWrap:"wrap" }}>
+                      <span style={dm({ fontSize:10, color:"#9A9087", whiteSpace:"nowrap", minWidth:58 })}>{block.time}</span>
+                      <span style={dm({ fontSize:13, fontWeight:"500", color:"#2C2825" })}>{block.label}</span>
+                      {block.pillar && <span style={dm({ fontSize:9, color, letterSpacing:"0.08em", textTransform:"uppercase" })}>{getPillar(block.pillar).label}</span>}
+                    </div>
+                    {block.note && <div style={{ fontSize:11, color:"#9A9087", fontStyle:"italic", marginTop:2, marginLeft:67 }}>{block.note}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* THIS WEEK */}
+        {tab==="week" && (
+          <div>
+            <div style={dm({ fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#9A9087", marginBottom:13 })}>Weekly Intentions</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+              {WEEKLY.map(item => <CheckRow key={item.id} item={item} done={!!weekly[item.id]} onToggle={() => setWeekly(p=>({...p,[item.id]:!p[item.id]}))} showFreq showDay />)}
+            </div>
+            <div style={{ marginTop:20, padding:"14px 15px", background:"#EDF2F7", borderRadius:10, border:"1px solid #7A8FA628" }}>
+              <div style={dm({ fontSize:11, fontWeight:"600", color:"#7A8FA6", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:6 })}>⬡ Fellowship Target</div>
+              <div style={dm({ fontSize:12, color:"#5C5248", lineHeight:1.65 })}>Host or organize <strong>2 gatherings/month</strong> — invite people over, plan an outing, neighbors, friends, or colleagues. Put it on the calendar before it disappears.</div>
+            </div>
+          </div>
+        )}
+
+        {/* MEALS */}
+        {tab==="meals" && <MealTab weekKey={weekKey} />}
+
+        {/* FITNESS */}
+        {tab==="fitness" && (
+          <div>
+            <div style={{ display:"flex", gap:7, marginBottom:16 }}>
+              {["plan","log"].map(v => (
+                <button key={v} onClick={() => setFitView(v)} style={dm({ padding:"5px 16px", borderRadius:20, border:`1px solid ${fitView===v?"#B07A6E":"#DDD9D2"}`, background:fitView===v?"#B07A6E":"transparent", color:fitView===v?"#fff":"#9A9087", fontSize:11, fontWeight:fitView===v?"600":"400", cursor:"pointer", textTransform:"uppercase", letterSpacing:"0.05em" })}>{v==="plan"?"Weekly Plan":"Log Workouts"}</button>
+              ))}
+            </div>
+            {fitView==="plan" && (
+              <div>
+                <div style={{ fontSize:12, color:"#5C5248", fontStyle:"italic", marginBottom:16, lineHeight:1.65 }}>{FITNESS_PLAN.description}</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  {FITNESS_PLAN.weekStructure.map((d,i) => {
+                    const tc = d.type==="Cardio"?"#7A8FA6":d.type==="Strength"?"#B07A6E":d.type==="Flex"?"#7B9E87":"#BBB";
+                    return (
+                      <div key={i} style={{ padding:"12px 14px", borderRadius:10, background:d.type==="Rest"?"#FAFAF8":"#fff", border:`1px solid ${tc}38`, borderLeft:`4px solid ${tc}` }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap" }}>
+                          <span style={{ fontSize:16 }}>{d.icon}</span>
+                          <span style={dm({ fontWeight:"600", fontSize:12, color:"#2C2825" })}>{d.day}</span>
+                          <span style={dm({ fontSize:10, padding:"2px 8px", borderRadius:20, background:tc+"20", color:tc })}>{d.type}</span>
+                          <span style={dm({ fontSize:12, color:"#5C5248" })}>{d.label}</span>
+                        </div>
+                        <div style={dm({ fontSize:11, color:"#9A9087", marginLeft:24, lineHeight:1.5 })}>{d.detail}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ marginTop:18, padding:"14px 15px", background:"#FAF0EE", borderRadius:10, border:"1px solid #B07A6E28" }}>
+                  <div style={dm({ fontSize:10, fontWeight:"600", color:"#B07A6E", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:8 })}>Coach's Notes</div>
+                  {FITNESS_PLAN.tips.map((t,i) => <div key={i} style={dm({ fontSize:11, color:"#5C5248", marginBottom:6, paddingLeft:10, borderLeft:"2px solid #B07A6E50", lineHeight:1.5 })}>{t}</div>)}
+                </div>
+              </div>
+            )}
+            {fitView==="log" && (
+              <div>
+                <div style={dm({ fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#9A9087", marginBottom:8 })}>This Week's Workout Log</div>
+                <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+                  {[0,1,2,3].map(i => <div key={i} style={{ flex:1, height:7, borderRadius:4, background:i<workoutCount?"#B07A6E":"#EDE9E2", transition:"background 0.3s" }} />)}
+                </div>
+                <div style={{ textAlign:"center", fontSize:22, color:"#B07A6E", marginBottom:18 }}>{workoutCount}<span style={dm({ fontSize:13, color:"#9A9087" })}>/4 workouts this week</span></div>
+                <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+                  {FITNESS_PLAN.weekStructure.filter(d => d.type!=="Rest").map((d,i) => {
+                    const done = workouts[d.day];
+                    const tc = d.type==="Cardio"?"#7A8FA6":d.type==="Strength"?"#B07A6E":"#7B9E87";
+                    return (
+                      <div key={i} onClick={() => setWorkouts(p=>({...p,[d.day]:!p[d.day]}))}
+                        style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderRadius:10, background:done?"#FAF0EE":"#FAFAF8", border:`1px solid ${done?"#B07A6E50":"#E8E4DE"}`, cursor:"pointer" }}>
+                        <div style={{ width:20, height:20, borderRadius:5, flexShrink:0, border:`2px solid ${done?"#B07A6E":"#CCC"}`, background:done?"#B07A6E":"transparent", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                          {done && <span style={{ color:"#fff", fontSize:11 }}>✓</span>}
+                        </div>
+                        <span style={{ fontSize:16 }}>{d.icon}</span>
+                        <div style={{ flex:1 }}>
+                          <div style={dm({ fontSize:13, fontWeight:"500", color:done?"#B07A6E":"#2C2825", textDecoration:done?"line-through":"none" })}>{d.day} — {d.label}</div>
+                        </div>
+                        <span style={dm({ fontSize:10, padding:"2px 8px", borderRadius:20, background:tc+"20", color:tc })}>{d.type}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* WATER */}
+        {tab==="water" && (
+          <div style={{ textAlign:"center" }}>
+            <div style={dm({ fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#9A9087", marginBottom:6 })}>Water Goal — 3 × 40oz Bottles</div>
+            <div style={{ fontSize:12, color:"#9A9087", fontStyle:"italic", marginBottom:28 }}>Bottle 1 by noon · Bottle 2 by 4pm · Bottle 3 by 7pm</div>
+            <div style={{ display:"flex", justifyContent:"center", gap:32, marginBottom:28 }}>
+              {[0,1,2].map(i => {
+                const filled = i < bottles;
+                const col = "#7A8FA6";
+                const labels = ["Morning","Afternoon","Evening"];
+                return (
+                  <div key={i} onClick={() => setBottles(b => b===i+1?i:i+1)} style={{ cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
+                    <svg width="56" height="94" viewBox="0 0 60 100">
+                      <rect x="10" y="20" width="40" height="72" rx="8" fill={filled?col:"#EDE9E2"} stroke={filled?col:"#CCC"} strokeWidth="2" style={{ transition:"fill 0.3s" }} />
+                      <rect x="20" y="10" width="20" height="14" rx="4" fill={filled?col:"#EDE9E2"} stroke={filled?col:"#CCC"} strokeWidth="2" style={{ transition:"fill 0.3s" }} />
+                      <rect x="22" y="4" width="16" height="10" rx="3" fill={filled?"#C8A96E":"#CCC"} style={{ transition:"fill 0.3s" }} />
+                      {filled && <rect x="12" y="30" width="36" height="60" rx="6" fill="rgba(255,255,255,0.18)" />}
+                      {[50,62,74].map(y => <line key={y} x1="18" y1={y} x2="42" y2={y} stroke={filled?"rgba(255,255,255,0.35)":"#E0DDD8"} strokeWidth="1.5" />)}
+                    </svg>
+                    <div style={dm({ fontSize:11, color:filled?col:"#9A9087", fontWeight:filled?"600":"400" })}>{labels[i]}</div>
+                    <div style={dm({ fontSize:10, color:"#9A9087" })}>40oz</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize:30, color:"#7A8FA6", marginBottom:6 }}>{bottles*40}<span style={dm({ fontSize:14, color:"#9A9087" })}> oz / 120oz</span></div>
+            <div style={dm({ fontSize:12, color:"#9A9087", marginBottom:22 })}>{bottles>=3?"Goal reached — great work today. 💧":`${3-bottles} bottle${3-bottles!==1?"s":""} to go`}</div>
+            <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
+              <button onClick={() => setBottles(b=>Math.min(3,b+1))} style={dm({ padding:"10px 26px", borderRadius:9, border:"none", background:"#7A8FA6", color:"#fff", fontSize:12, fontWeight:"600", cursor:"pointer" })}>+ Bottle</button>
+              <button onClick={() => setBottles(b=>Math.max(0,b-1))} style={dm({ padding:"10px 26px", borderRadius:9, border:"1px solid #CCC", background:"#F7F4EF", color:"#9A9087", fontSize:12, cursor:"pointer" })}>− Bottle</button>
+            </div>
+          </div>
+        )}
+
+        {/* SUNDAY */}
+        {tab==="sunday" && (
+          <div>
+            <div style={dm({ fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#C8A96E", marginBottom:4 })}>Sunday Weekly Review</div>
+            <div style={{ fontSize:12, color:"#9A9087", fontStyle:"italic", marginBottom:20 }}>Set aside 10–15 min. Be honest. This is between you and God.</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              {SUNDAY_QS.map((q,i) => (
+                <div key={i}>
+                  <div style={{ fontSize:13, color:"#2C2825", marginBottom:7, fontStyle:"italic", lineHeight:1.5 }}>{q}</div>
+                  <textarea value={sunReflect[i]||""} onChange={e => setSunReflect(p=>({...p,[i]:e.target.value}))} placeholder="Write freely..." style={{ width:"100%", minHeight:68, borderRadius:9, border:"1px solid #E8E4DE", background:"#FAFAF8", fontFamily:"'Playfair Display', Georgia, serif", fontSize:12, color:"#2C2825", padding:"10px 12px", resize:"vertical", lineHeight:1.65, boxSizing:"border-box" }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop:20, padding:"13px 15px", background:"#FDF6EC", borderRadius:10, border:"1px solid #C8A96E28", textAlign:"center" }}>
+              <span style={{ fontSize:13, color:"#C8A96E", fontStyle:"italic" }}>"Let each week begin again with grace."</span>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Footer */}
+      <div style={{ textAlign:"center", padding:"0 24px 32px", fontSize:12, color:"#9A9087", fontStyle:"italic", lineHeight:1.8 }}>
+        "Seek first the kingdom of God and his righteousness,<br />
+        and all these things will be added to you." — Matthew 6:33
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
